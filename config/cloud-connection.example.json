@@ -1,0 +1,11 @@
+{
+  "host": "YOUR_SERVER_HOST",
+  "user": "YOUR_SSH_USER",
+  "key_path": "C:/Users/YOUR_USER/.ssh/market-server.pem",
+  "local_api": "http://127.0.0.1:18000",
+  "client_env": "data/deploy/server-client.env",
+  "remote_app": "/opt/personal-market-data/app",
+  "remote_data": "/var/lib/personal-market-data",
+  "remote_python": "/opt/personal-market-data/venv/bin/python",
+  "services": ["personal-market-api", "personal-market-worker"]
+}

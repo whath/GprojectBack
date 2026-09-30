@@ -1,0 +1,35 @@
+{
+  "history_days": 760,
+  "request_timeout_seconds": 75,
+  "request_attempts": 2,
+  "request_spacing_seconds": 1.5,
+  "use_system_proxy": false,
+  "us_history_fallback": "sina",
+  "retry_max_attempts": 3,
+  "retry_interval_minutes": 20,
+  "backup_retention_days": 14,
+  "collection_budget_seconds": 900,
+  "cn_sources": {"stock": "tencent", "etf": "sina", "boards": "ths"},
+  "cn_all_stocks": true,
+  "cn_all_etfs": true,
+  "cn_all_boards": true,
+  "cn_stocks": ["000001", "600519"],
+  "cn_etfs": ["510300", "513100"],
+  "cn_boards": {"industry": ["半导体"], "concept": ["人工智能"]},
+  "us_benchmark": "SPY",
+  "us_sectors": {
+    "XLB": "材料", "XLC": "通信服务", "XLE": "能源",
+    "XLF": "金融", "XLI": "工业", "XLK": "信息技术",
+    "XLP": "必需消费", "XLRE": "房地产", "XLU": "公用事业",
+    "XLV": "医疗保健", "XLY": "可选消费"
+  },
+  "us_ai": {
+    "NVDA": "算力芯片", "AMD": "算力芯片", "AVGO": "芯片与互联",
+    "TSM": "晶圆制造", "MU": "存储", "ANET": "网络互联",
+    "VRT": "电力与散热", "MSFT": "云与平台", "AMZN": "云与平台",
+    "GOOGL": "云与平台", "META": "平台", "PLTR": "软件应用"
+  },
+  "us_source_codes": {"NVDA": "105.NVDA", "SPY": "107.SPY", "XLB": "107.XLB", "XLC": "107.XLC"},
+  "calendar_overrides": {"CN": {}, "US": {}},
+  "alerts": {"absolute_change_pct": 5, "volume_ratio": 2}
+}

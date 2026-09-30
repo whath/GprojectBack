@@ -1,0 +1,5 @@
+fastapi==0.142.1
+uvicorn==0.54.0
+akshare==1.19.1
+exchange-calendars==4.13.2
+tzdata==2026.4
