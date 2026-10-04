@@ -1,7 +1,7 @@
 services:
   api:
     build: .
-    image: personal-market-data:0.1.0
+    image: personal-market-data:0.4.1
     restart: unless-stopped
     env_file: .env
     ports:
@@ -19,7 +19,7 @@ services:
       timeout: 10s
       retries: 3
   worker:
-    image: personal-market-data:0.1.0
+    image: personal-market-data:0.4.1
     build: .
     command: ["python", "-m", "marketdata", "worker"]
     restart: unless-stopped

@@ -25,6 +25,10 @@ def session_close(market, day, config):
         return datetime.combine(day, time.fromisoformat(override), zone)
     cal = calendar(market, day.year)
     stamp = pd.Timestamp(day)
+    # The requested year can end on a closure after the last session.
+    # Calendar construction still raises for unsupported years; do not guess them.
+    if stamp < cal.first_session or stamp > cal.last_session:
+        return None
     if not cal.is_session(stamp):
         return None
     return cal.session_close(stamp).to_pydatetime()

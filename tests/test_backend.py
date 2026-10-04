@@ -227,14 +227,10 @@ def test_cn_configured_missing_symbol_marks_partial(monkeypatch):
 
 
 def test_provider_child_metadata_json(monkeypatch,tmp_path):
-    import requests
+    import akshare
+    import pandas as pd
     from marketdata.provider import child
-    class Response:
-        def raise_for_status(self):
-            pass
-        def json(self):
-            return {"rc":0,"data":{"diff":[{"f12":"SPY","f13":107,"f14":"SPY"}]}}
-    monkeypatch.setattr(requests,"get",lambda *args,**kwargs:Response())
+    monkeypatch.setattr(akshare,"stock_us_spot_em",lambda:pd.DataFrame([{"代码":"107.SPY","名称":"SPY"}]))
     request=tmp_path/"input.json"
     response=tmp_path/"output.json"
     request.write_text(json.dumps({"endpoint":"us_watchlist_catalog","kwargs":{"symbols":["SPY"]}}))

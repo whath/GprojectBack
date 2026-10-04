@@ -111,10 +111,14 @@ class Collector:
 
     def history(self, item, endpoint):
         with db.connect() as con:
-            latest = con.execute("SELECT max(trade_date) FROM bars WHERE instrument_id=? AND trade_date<=?", (item["id"], self.day.isoformat())).fetchone()[0]
-            sources = {r[0] for r in con.execute("SELECT DISTINCT source FROM bars WHERE instrument_id=?", (item["id"],))}
+            earliest, latest = con.execute("SELECT min(trade_date),max(trade_date) FROM bars WHERE instrument_id=? AND trade_date<=? AND adjustment='none'", (item["id"], self.day.isoformat())).fetchone()
+            sources = {r[0] for r in con.execute("SELECT DISTINCT source FROM bars WHERE instrument_id=? AND adjustment='none'", (item["id"],))}
+            requested = con.execute("SELECT * FROM history_requests WHERE instrument_id=?", (item["id"],)).fetchone()
         start = self.day - timedelta(days=self.cfg["history_days"])
-        if latest:
+        if requested:
+            start = min(start, date.fromisoformat(requested["start_date"]))
+        # Extend short history before entering the recent-revision mode.
+        if latest and not requested and earliest <= start.isoformat():
             start = max(start, date.fromisoformat(latest) - timedelta(days=10))
         kwargs = dict(symbol=item["source_code"], start_date=start.strftime("%Y%m%d"),
                       end_date=self.day.strftime("%Y%m%d"), adjust="",
@@ -168,11 +172,6 @@ class Collector:
                     currency="CNY" if self.market == "CN" else "USD", group_name=group)
 
     def cn(self):
-        if self.cfg.get("cn_full_close_quotes") and not self.sample:
-            from .quotes import collect
-            collect(self)
-        # Disclosures are small and time-sensitive; do not queue them behind full history initialization.
-        self.collect_lhb()
         sources = self.cfg.get("cn_sources", {"stock":"eastmoney", "etf":"eastmoney", "boards":"eastmoney"})
         routes = {
             ("stock", "eastmoney"): ("stock_zh_a_spot_em", "stock_zh_a_hist"),
@@ -180,16 +179,49 @@ class Collector:
             ("etf", "eastmoney"): ("fund_etf_spot_em", "fund_etf_hist_em"),
             ("etf", "sina"): ("fund_etf_category_sina", "fund_etf_hist_sina"),
         }
+        # Publish every catalog before spending the budget on per-security history or seats.
+        catalogs = {}
+        for kind in ("stock", "etf", "industry", "concept"):
+            if kind in ("stock", "etf"):
+                endpoint, _ = routes[(kind, sources[kind])]
+                def catalog(e=endpoint):
+                    rows = self.call(e, symbol="ETF基金") if e == "fund_etf_category_sina" else self.catalog(e)
+                    if not rows:
+                        raise normalize.PendingData("empty instrument catalog")
+                    return rows
+            else:
+                board_source = sources["boards"]
+                if board_source not in ("ths", "eastmoney"):
+                    raise ValueError("unsupported board classification source")
+                suffix = "ths" if board_source == "ths" else "em"
+                endpoint = f"stock_board_{kind}_name_{suffix}"
+                def catalog(e=endpoint):
+                    return self.catalog(e)
+            def publish(catalog=catalog,kind=kind):
+                rows = catalog()
+                items = []
+                for row in rows:
+                    if kind in ("stock", "etf"):
+                        symbol = str(row["代码"]).zfill(6)
+                        code = row.get("source_code", symbol)
+                        if kind == "stock" and sources[kind] == "tencent":
+                            code = ("sh" if symbol.startswith("6") else "sz" if symbol.startswith(("0","3")) else "bj") + symbol
+                        items.append(self.item(kind,symbol,str(row["名称"]),code))
+                    else:
+                        code, name = str(row["板块代码"]), str(row["板块名称"])
+                        items.append(self.item(kind,code,name,name if sources["boards"]=="ths" else code,group=sources["boards"]))
+                source = sources[kind] if kind in ("stock","etf") else sources["boards"]
+                db.publish_catalog(items,"CN",kind,datetime.now(CN).date().isoformat(),"akshare/"+source,
+                                   classification=source if kind in ("industry","concept") else "",full=True)
+                return rows
+            catalogs[kind] = self.task("catalog:"+kind,publish,always=True)
+        if self.cfg.get("cn_full_close_quotes") and not self.sample:
+            from .quotes import collect
+            collect(self)
+        self.collect_lhb()
         for kind, cfg_key in (("stock", "cn_stocks"), ("etf", "cn_etfs")):
             endpoint, history = routes[(kind, sources[kind])]
-            def catalog(e=endpoint):
-                if e == "fund_etf_category_sina":
-                    rows = self.call(e, symbol="ETF基金")
-                    if not rows:
-                        raise normalize.PendingData("empty ETF catalog")
-                    return rows
-                return self.catalog(e)
-            rows = self.task(f"catalog:{kind}", catalog, always=True)
+            rows = catalogs[kind]
             if rows is None:
                 continue
             selected = self.cfg[cfg_key]
@@ -217,7 +249,7 @@ class Collector:
             if board_source not in ("ths", "eastmoney"):
                 raise ValueError("unsupported board classification source")
             suffix = "ths" if board_source == "ths" else "em"
-            rows = self.task(f"catalog:{kind}", lambda k=kind: self.catalog(f"stock_board_{k}_name_{suffix}"), always=True)
+            rows = catalogs[kind]
             if rows is None:
                 continue
             selected = self.cfg["cn_boards"][kind]
@@ -304,6 +336,9 @@ class Collector:
                 mapping[symbol] = None
             elif symbol not in mapping:
                 mapping[symbol] = code
+        metadata = [self.item(k,s,n,mapping[s],g) for s,k,n,g in universe if mapping.get(s)]
+        for item in metadata:
+            db.instrument(item)
         for symbol, kind, name, group in universe:
             def fetch(s=symbol,k=kind,n=name,g=group):
                 code = mapping.get(s)

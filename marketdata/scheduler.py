@@ -2,9 +2,40 @@ import logging
 from datetime import date,datetime,timedelta,timezone
 
 from . import db
-from .calendars import CN,due_slots,session_close
+from .calendars import CN,CN_COLLECTION_TIMES,due_slots,session_close
 from .operations import alert,heartbeat,report_tasks,retry_decision,finish_slot,refresh_alerts,daily_backup
 from .pipeline import Collector
+
+_maintenance_cursor = 0
+
+
+def maintenance_slice(cfg, now):
+    """Run one bounded maintenance queue per idle loop so fixed slots stay ahead."""
+    global _maintenance_cursor
+    local=now.astimezone(CN)
+    if any(timedelta(0)<=datetime.combine(local.date(),t,CN)-local<timedelta(minutes=5)
+           for t in CN_COLLECTION_TIMES):
+        return
+    from .history import run_slice as requested_history_slice
+    queues=[requested_history_slice]
+    if cfg.get("cn_history_backfill"):
+        from .backfill import run_slice
+        queues.append(run_slice)
+    if cfg.get("cn_listing_metadata_enabled"):
+        from .lifecycle import run_slice
+        queues.append(run_slice)
+    if cfg.get("cn_stock_funds_enabled") and (local.hour,local.minute)>=(15,10):
+        from .funds import run_slice
+        queues.append(run_slice)
+    if cfg.get("events_enabled"):
+        from .events import run_slice
+        queues.append(run_slice)
+    if cfg.get("economic_calendar_enabled"):
+        from .economic import run_slice
+        queues.append(run_slice)
+    queue=queues[_maintenance_cursor % len(queues)]
+    _maintenance_cursor+=1
+    return queue(cfg)
 
 
 def run_once(cfg,now=None,collector_class=Collector):
@@ -74,8 +105,7 @@ def run_once(cfg,now=None,collector_class=Collector):
         refresh_alerts(market,day.isoformat())
         logging.info("slot=%s attempts=%s %s",slot,attempts,result)
         results.append(result)
-    if not results and cfg.get("cn_history_backfill") and simulated_now is None:
-        from .backfill import run_slice
-        run_slice(cfg)
+    if not results and simulated_now is None:
+        maintenance_slice(cfg,datetime.now(timezone.utc))
     heartbeat("idle")
     return results

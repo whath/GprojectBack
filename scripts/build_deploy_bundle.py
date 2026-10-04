@@ -10,7 +10,7 @@ def main():
     output=root/"data"/"deploy"
     output.mkdir(parents=True,exist_ok=True)
     cfg=json.loads((root/"config/universe.json").read_text(encoding="utf-8"))
-    cfg.update(history_days=60,cn_all_stocks=False,cn_all_etfs=False,cn_all_boards=False,
+    cfg.update(history_days=max(760,cfg["history_days"]),cn_all_stocks=False,cn_all_etfs=False,cn_all_boards=False,
                cn_stocks=["000001","600519","300750","688981","920779"])
     config_path=output/"universe.json"
     config_path.write_text(json.dumps(cfg,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
@@ -20,6 +20,8 @@ def main():
     paths+=sorted((root/"deploy").glob("*.sh"))
     paths+=sorted((root/"deploy").glob("*.conf"))
     paths += [root/"scripts/collect_acceptance.py",root/"scripts/smoke_api.py",root/"scripts/check_live_api.py",root/"scripts/check_hardening_api.py",root/"scripts/check_expanded_api.py",root/"scripts/pull_cloud_backup.py",root/"docs/BACKEND-EXPANSION-20260930.md"]
+    paths += [root/"docs/openapi.json", root/"docs/CONTRACT-REPAIRS-20261004.md",root/"config/deployment-status.json"]
+    paths += [root/"docs/AKSHARE-CROSSCHECK-20261004.json",root/"scripts/verify_remaining_contract.py"]
     manifest=[]
     with tarfile.open(archive,"w:gz") as tar:
         for path in paths+[config_path]:
@@ -27,7 +29,7 @@ def main():
             tar.add(path,arcname=name,recursive=False)
             manifest.append({"path":name,"sha256":hashlib.sha256(path.read_bytes()).hexdigest()})
     report={"archive":str(archive),"sha256":hashlib.sha256(archive.read_bytes()).hexdigest(),
-            "initial_scope":"configured sample pool, 60 calendar days; no existing market data or credentials bundled",
+            "initial_scope":"configured sample pool, at least 760 calendar days; no existing market data or credentials bundled",
             "files":manifest}
     (output/"manifest.json").write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding="utf-8")
     with tarfile.open(archive) as tar:

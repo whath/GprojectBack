@@ -22,6 +22,10 @@ def main():
     collect.add_argument("--sample",action="store_true")
     collect.add_argument("--refresh",action="store_true",help="also re-fetch successful history tasks")
     commands.add_parser("worker")
+    funds=commands.add_parser("collect-funds")
+    funds.add_argument("--date",type=date.fromisoformat)
+    funds.add_argument("--symbol",action="append")
+    commands.add_parser("collect-events")
     backup=commands.add_parser("backup")
     backup.add_argument("destination",type=Path)
     rebuild=commands.add_parser("rebuild-us-source")
@@ -37,6 +41,18 @@ def main():
             refresh_alerts(args.market,day.isoformat())
         print(json.dumps(result,ensure_ascii=False))
         raise SystemExit(0 if result["status"]=="complete" else 2)
+    elif args.command=="collect-funds":
+        from .funds import run_slice
+        result=run_slice(config(),args.date,args.symbol)
+        print(json.dumps(result,ensure_ascii=False))
+        raise SystemExit(0 if result["status"]=="complete" else 2)
+    elif args.command=="collect-events":
+        from .events import run_slice
+        run_slice(config())
+        with db.connect() as con:
+            row=con.execute("SELECT status,message FROM feed_snapshots WHERE feed_key='events'").fetchone()
+        print(json.dumps(dict(row) if row else {"status":"not_configured"},ensure_ascii=False))
+        raise SystemExit(0 if row and row["status"]=="complete" else 2)
     elif args.command=="backup":
         db.backup(args.destination)
         print("Backup integrity check: ok")

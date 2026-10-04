@@ -1,0 +1,265 @@
+{
+  "checked_at": "2026-10-04T14:30:34.931099+00:00",
+  "akshare_version": "1.19.1",
+  "mode": "read-only source calls; isolated temporary API database; no server changes",
+  "sources": [
+    {
+      "endpoint": "stock_individual_fund_flow",
+      "symbol": "000001",
+      "transport": "curl_cffi",
+      "status": "validated",
+      "count": 120,
+      "latest_date": "2026-09-30",
+      "source": "akshare/eastmoney/main-order-flow/v1",
+      "unit": "yuan",
+      "scope": "main",
+      "http_status": 200
+    },
+    {
+      "endpoint": "stock_individual_fund_flow",
+      "symbol": "600519",
+      "transport": "curl_cffi",
+      "status": "validated",
+      "count": 120,
+      "latest_date": "2026-09-30",
+      "source": "akshare/eastmoney/main-order-flow/v1",
+      "unit": "yuan",
+      "scope": "main",
+      "http_status": 200
+    },
+    {
+      "endpoint": "stock_individual_fund_flow",
+      "symbol": "688981",
+      "transport": "curl_cffi",
+      "status": "validated",
+      "count": 120,
+      "latest_date": "2026-09-30",
+      "source": "akshare/eastmoney/main-order-flow/v1",
+      "unit": "yuan",
+      "scope": "main",
+      "http_status": 200
+    },
+    {
+      "endpoint": "stock_individual_fund_flow",
+      "symbol": "920779",
+      "transport": "curl_cffi",
+      "status": "validated",
+      "count": 120,
+      "latest_date": "2026-09-30",
+      "source": "akshare/eastmoney/main-order-flow/v1",
+      "unit": "yuan",
+      "scope": "main",
+      "http_status": 200
+    },
+    {
+      "endpoint": "stock_tfp_em",
+      "transport": "requests",
+      "status": "response",
+      "count": 19,
+      "fields": [
+        "代码",
+        "停牌原因",
+        "停牌截止时间",
+        "停牌时间",
+        "停牌期限",
+        "名称",
+        "序号",
+        "所属市场",
+        "预计复牌时间"
+      ]
+    },
+    {
+      "endpoint": "news_economic_baidu",
+      "transport": "requests",
+      "status": "validated_partial_facts",
+      "count": 47,
+      "http_status": 200,
+      "limitations": [
+        "source does not expose publication timestamp",
+        "no individual original-event URL",
+        "source clock timezone and numeric units are unverified",
+        "not a verified scheduled-event feed; /v1/events remains separate"
+      ]
+    },
+    {
+      "endpoint": "cn_close_quotes",
+      "transport": "requests",
+      "status": "response",
+      "count": 1,
+      "fields": [
+        "adjustment",
+        "amount",
+        "change_pct",
+        "close",
+        "high",
+        "low",
+        "open",
+        "previous_close",
+        "source",
+        "source_code",
+        "source_time",
+        "source_time_basis",
+        "symbol",
+        "trade_date",
+        "volume",
+        "volume_unit"
+      ]
+    },
+    {
+      "endpoint": "stock_info_sh_name_code",
+      "transport": "requests",
+      "status": "validated",
+      "count": 1702,
+      "fields": [
+        "上市日期",
+        "公司全称",
+        "公司简称",
+        "证券代码",
+        "证券全称",
+        "证券简称"
+      ],
+      "accepted_count": 1702
+    },
+    {
+      "endpoint": "stock_info_sh_name_code",
+      "transport": "requests",
+      "status": "validated",
+      "count": 618,
+      "fields": [
+        "上市日期",
+        "公司全称",
+        "公司简称",
+        "证券代码",
+        "证券全称",
+        "证券简称"
+      ],
+      "accepted_count": 618
+    },
+    {
+      "endpoint": "stock_info_sz_name_code",
+      "transport": "requests",
+      "status": "validated",
+      "count": 2904,
+      "fields": [
+        "A股上市日期",
+        "A股代码",
+        "A股总股本",
+        "A股流通股本",
+        "A股简称",
+        "所属行业",
+        "板块"
+      ],
+      "accepted_count": 2904
+    },
+    {
+      "endpoint": "stock_info_bj_name_code",
+      "transport": "requests",
+      "status": "validated",
+      "count": 348,
+      "fields": [
+        "上市日期",
+        "地区",
+        "总股本",
+        "所属行业",
+        "报告日期",
+        "流通股本",
+        "证券代码",
+        "证券简称"
+      ],
+      "accepted_count": 348
+    },
+    {
+      "endpoint": "stock_info_sh_delist",
+      "transport": "requests",
+      "status": "validated",
+      "count": 159,
+      "fields": [
+        "上市日期",
+        "公司代码",
+        "公司简称",
+        "暂停上市日期"
+      ],
+      "accepted_count": 146
+    },
+    {
+      "endpoint": "stock_info_sz_delist",
+      "transport": "requests",
+      "status": "validated",
+      "count": 208,
+      "fields": [
+        "上市日期",
+        "终止上市日期",
+        "证券代码",
+        "证券简称"
+      ],
+      "accepted_count": 208
+    }
+  ],
+  "ths_functions": {
+    "stock_board_cons_ths": false,
+    "stock_board_industry_cons_ths": false,
+    "stock_board_concept_cons_ths": false
+  },
+  "deployment": {
+    "domain": "ericcself.top",
+    "icp_filing": {
+      "status": "waiting_for_implementation",
+      "label": "等待落地",
+      "reason": "用户确认域名正在备案审核",
+      "confirmed_on": "2026-10-04"
+    },
+    "public_https_acceptance": {
+      "status": "waiting_for_implementation",
+      "label": "等待落地",
+      "depends_on": [
+        "icp_filing",
+        "server_access",
+        "certificate_and_network_acceptance"
+      ]
+    },
+    "server_changes_performed": false
+  },
+  "catalog_coverage": {
+    "market": "CN",
+    "kind": "stock",
+    "basis": "Shanghai main A/STAR, Shenzhen A, Beijing catalogs through AKShare",
+    "exchange_catalogs_complete": true,
+    "directory_complete": true,
+    "expected": 5572,
+    "published_count": 5572,
+    "missing_catalogs": [],
+    "catalogs": [
+      {
+        "key": "stock_info_sh_name_code:主板A股",
+        "observed_date": "2026-10-04",
+        "count": 1702,
+        "source": "akshare/stock_info_sh_name_code",
+        "verified_at": "2026-10-04T14:30:44.994379+00:00"
+      },
+      {
+        "key": "stock_info_sh_name_code:科创板",
+        "observed_date": "2026-10-04",
+        "count": 618,
+        "source": "akshare/stock_info_sh_name_code",
+        "verified_at": "2026-10-04T14:30:46.335892+00:00"
+      },
+      {
+        "key": "stock_info_sz_name_code:A股列表",
+        "observed_date": "2026-10-04",
+        "count": 2904,
+        "source": "akshare/stock_info_sz_name_code",
+        "verified_at": "2026-10-04T14:30:48.802016+00:00"
+      },
+      {
+        "key": "stock_info_bj_name_code:",
+        "observed_date": "2026-10-04",
+        "count": 348,
+        "source": "akshare/stock_info_bj_name_code",
+        "verified_at": "2026-10-04T14:30:54.105324+00:00"
+      }
+    ],
+    "note": "complete proves agreement at the reported catalog observation date; not every historical bar",
+    "missing_count": 0,
+    "unverified_count": 0
+  }
+}

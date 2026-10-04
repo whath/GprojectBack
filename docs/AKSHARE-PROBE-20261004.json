@@ -1,0 +1,59 @@
+{
+  "checked_at": "2026-10-04T11:28:06.007596+00:00",
+  "akshare_version": "1.19.1",
+  "available_membership_functions": {
+    "stock_board_cons_ths": false,
+    "stock_board_industry_cons_ths": false,
+    "stock_board_concept_cons_ths": false
+  },
+  "probes": [
+    {
+      "endpoint": "stock_individual_fund_flow",
+      "status": "failed",
+      "error": "stock_individual_fund_flow: ConnectionError",
+      "use_system_proxy": false
+    },
+    {
+      "endpoint": "stock_individual_fund_flow",
+      "status": "failed",
+      "error": "stock_individual_fund_flow: ProxyError",
+      "use_system_proxy": true
+    },
+    {
+      "endpoint": "stock_news_em",
+      "status": "response",
+      "count": 10,
+      "fields": [
+        "关键词",
+        "发布时间",
+        "文章来源",
+        "新闻内容",
+        "新闻标题",
+        "新闻链接"
+      ],
+      "latest_date": "2026-10-04 18:07:03",
+      "use_system_proxy": false
+    },
+    {
+      "endpoint": "stock_fund_flow_industry",
+      "status": "response",
+      "count": 90,
+      "fields": [
+        "公司家数",
+        "净额",
+        "序号",
+        "当前价",
+        "流入资金",
+        "流出资金",
+        "行业",
+        "行业-涨跌幅",
+        "行业指数",
+        "领涨股",
+        "领涨股-涨跌幅"
+      ],
+      "latest_date": "",
+      "use_system_proxy": false
+    }
+  ],
+  "pypi_latest": "1.19.1"
+}

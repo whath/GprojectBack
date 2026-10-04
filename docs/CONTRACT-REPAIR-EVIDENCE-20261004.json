@@ -1,0 +1,40 @@
+{
+  "missing_routes": {
+    "/v1/cn/boards/CN.industry.THS_881121/flows?limit=20&classification_source=ths": 501,
+    "/v1/cn/stocks/CN.stock.000001/flows?end=2026-09-30&limit=2000": 501,
+    "/v1/events?limit=100": 501
+  },
+  "failed_history_response": {
+    "http_status": 503,
+    "body": {
+      "detail": "history collection failed; retry later"
+    }
+  },
+  "negative_amount": "rejected: negative amount",
+  "non_session": "rejected: daily bar is not a market session",
+  "mixed_volume_units": "rejected: mixed volume units",
+  "pagination_during_update": {
+    "totals": [
+      2,
+      2
+    ],
+    "ids": [
+      "CN.stock.000001",
+      "CN.stock.000003"
+    ]
+  },
+  "future_stored_row_returned_without_end": "2026-09-29",
+  "missing_members_snapshot": {
+    "detail": "AKShare 1.19.1 has no verified complete THS membership source"
+  },
+  "expanded_history_request": {
+    "endpoint": "stock_zh_a_hist_tx",
+    "symbol": "sz000001",
+    "start_date": "20151018",
+    "end_date": "20260930",
+    "adjust": "",
+    "timeout": 15
+  },
+  "wrong_currency_rejected": true,
+  "catalog_refresh_does_not_correct_currency": "CNY"
+}

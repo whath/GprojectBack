@@ -1,5 +1,20 @@
 {
   "history_days": 760,
+  "cn_stock_funds_enabled": true,
+  "funds_transport": "curl_cffi",
+  "close_snapshot_budget_seconds": 120,
+  "cn_listing_metadata_enabled": true,
+  "events_enabled": true,
+  "economic_calendar_enabled": true,
+  "economic_calendar_days": 3,
+  "events_interval_seconds": 3600,
+  "event_queries": [
+    {"keyword": "美国", "markets": ["US"], "importance": "normal", "valid_hours": 48},
+    {"keyword": "日本", "markets": ["JP"], "importance": "normal", "valid_hours": 48},
+    {"keyword": "韩国", "markets": ["KR"], "importance": "normal", "valid_hours": 48},
+    {"keyword": "原油", "markets": ["OIL"], "importance": "normal", "valid_hours": 48},
+    {"keyword": "黄金", "markets": ["GOLD"], "importance": "normal", "valid_hours": 48}
+  ],
   "request_timeout_seconds": 75,
   "request_attempts": 2,
   "request_spacing_seconds": 1.5,

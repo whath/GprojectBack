@@ -1,0 +1,15 @@
+{
+  "domain": "ericcself.top",
+  "icp_filing": {
+    "status": "waiting_for_implementation",
+    "label": "等待落地",
+    "reason": "用户确认域名正在备案审核",
+    "confirmed_on": "2026-10-04"
+  },
+  "public_https_acceptance": {
+    "status": "waiting_for_implementation",
+    "label": "等待落地",
+    "depends_on": ["icp_filing", "server_access", "certificate_and_network_acceptance"]
+  },
+  "server_changes_performed": false
+}

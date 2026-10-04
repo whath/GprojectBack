@@ -1,0 +1,57 @@
+{
+  "missing_routes": {
+    "/v1/cn/boards/CN.industry.THS_881121/flows?limit=20&classification_source=ths": 404,
+    "/v1/cn/stocks/CN.stock.000001/flows?end=2026-09-30&limit=2000": 404,
+    "/v1/events?limit=100": 404
+  },
+  "failed_history_response": {
+    "http_status": 200,
+    "body": {
+      "instrument": {
+        "id": "CN.stock.000001",
+        "market": "CN",
+        "kind": "stock",
+        "symbol": "000001",
+        "name": "audit fixture",
+        "source_code": "sz000001",
+        "currency": "CNY",
+        "group_name": null,
+        "updated_at": "2026-10-04T11:00:01.423843+00:00"
+      },
+      "adjustment": "none",
+      "items": []
+    }
+  },
+  "negative_amount": -100.0,
+  "non_session_accepted": "2026-09-27",
+  "mixed_volume_units_accepted": [
+    "lot_100_shares",
+    "share"
+  ],
+  "pagination_during_update": {
+    "totals": [
+      2,
+      3
+    ],
+    "ids": [
+      "CN.stock.000001",
+      "CN.stock.000001"
+    ]
+  },
+  "future_stored_row_returned_without_end": "2099-01-05",
+  "missing_members_snapshot": {
+    "trade_date": "2026-09-30",
+    "items": [],
+    "task_status": [],
+    "empty_means": "no verified rows stored; not proof of no disclosures"
+  },
+  "expanded_history_request": {
+    "endpoint": "stock_zh_a_hist_tx",
+    "symbol": "sz000001",
+    "start_date": "20260919",
+    "end_date": "20260930",
+    "adjust": "",
+    "timeout": 15
+  },
+  "catalog_refresh_does_not_correct_currency": "CNY"
+}

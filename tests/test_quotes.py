@@ -52,6 +52,7 @@ def test_no_stale_or_intraday_quote_published(monkeypatch):
     monkeypatch.setattr(quotes,"datetime",Clock)
     class Collector:
         day=date(2026,9,30)
+        cfg={}
         errors=[]
         def task(self,key,fn,**kwargs):
             try:return fn()

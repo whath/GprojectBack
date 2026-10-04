@@ -34,24 +34,19 @@ def test_ths_catalog_has_separate_namespace_and_etf_keeps_exchange():
     ({"code":0,"success":True,"result":None},False),
 ])
 def test_only_explicit_empty_lhb_is_pending(monkeypatch,payload,pending):
-    import requests
-    class Response:
-        def raise_for_status(self): pass
-        def json(self): return payload
-    monkeypatch.setattr(requests,"get",lambda *a,**kw:Response())
     with pytest.raises(normalize.PendingData if pending else ValueError) as error:
-        check_lhb_publication("stock_lhb_detail_em",dict(start_date="20260930",end_date="20260930"))
+        check_lhb_publication(payload)
     assert isinstance(error.value,normalize.PendingData)==pending
 
 
 def test_lhb_pending_crosses_subprocess_protocol(monkeypatch,tmp_path):
-    def empty(*args):
+    def empty(*args,**kwargs):
         raise normalize.PendingData("source report empty (9201)")
-    monkeypatch.setattr("marketdata.provider.check_lhb_publication",empty)
+    monkeypatch.setattr("akshare.stock_lhb_detail_em",empty)
     request,response=tmp_path/"in.json",tmp_path/"out.json"
     request.write_text(json.dumps({"endpoint":"stock_lhb_detail_em","kwargs":{}}))
     child(request,response)
-    assert "pending" in json.loads(response.read_text())
+    assert "pending" in json.loads(response.read_text(encoding="utf-8"))
 
 
 class AlternateCN:

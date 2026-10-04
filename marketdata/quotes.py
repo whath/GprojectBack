@@ -35,19 +35,45 @@ def parse_tencent(text, symbols):
     return result
 
 
-def fetch(symbols):
-    import requests
-    if not 1 <= len(symbols) <= 100 or any(not re.fullmatch(r"(sh|sz|bj)\d{6}",s) for s in symbols):
+def fetch(symbols, day, kind):
+    import akshare as ak
+    from datetime import date, timedelta
+    from .provider import adapt_frame
+    from .settings import config
+    if not 1 <= len(symbols) <= 5 or any(not re.fullmatch(r"(sh|sz|bj)\d{6}",s) for s in symbols):
         raise ValueError("invalid quote batch")
-    response = requests.get("https://qt.gtimg.cn/", params={"q":",".join(symbols)}, timeout=20)
-    response.raise_for_status()
-    # Names come from the catalog; parse the numeric fields without executing upstream JS.
-    return parse_tencent(response.content.decode("gb18030", errors="replace"), symbols)
+    target = date.fromisoformat(day)
+    result = []
+    for code in symbols:
+        kwargs = dict(symbol=code, start_date=(target-timedelta(days=40)).strftime("%Y%m%d"),
+                      end_date=target.strftime("%Y%m%d"), adjust="")
+        endpoint = "fund_etf_hist_sina" if kind == "etf" else "stock_zh_a_daily" if code.startswith("bj") else "stock_zh_a_hist_tx"
+        if kind == "etf":
+            kwargs = {"symbol":code}
+        elif endpoint == "stock_zh_a_hist_tx":
+            kwargs["timeout"] = 15
+        frame = adapt_frame(endpoint, getattr(ak, endpoint)(**kwargs), kwargs)
+        raw = json.loads(frame.to_json(orient="records",date_format="iso"))
+        raw = [r for r in raw if normalize.day_string(r["日期"]) <= day]
+        rows = normalize.bars(raw, day, kind, "CN")
+        by_day = {r["trade_date"]:r for r in rows}
+        row = by_day.get(day)
+        if row is None:
+            continue
+        from .history import sessions
+        previous = by_day.get(sessions("CN",target,2,config())[0])
+        result.append(dict(row, source_code=code,symbol=code[2:],source="akshare/"+endpoint,
+                           source_time=datetime.combine(target,datetime.min.time().replace(hour=15),CN).isoformat(),
+                           source_time_basis="market close for provider-dated daily bar; not a quote timestamp",
+                           previous_close=previous["close"] if previous else None,adjustment="none"))
+    return result
 
 
 def collect(collector):
     """Each batch is a retry checkpoint; no thousands of per-symbol history requests."""
     import hashlib
+    import time
+    began = time.monotonic()
     if collector.day != datetime.now(CN).date():
         return  # A current quote cannot backfill yesterday.
     from .suspensions import saved
@@ -76,14 +102,20 @@ def collect(collector):
                 raise ValueError("invalid catalog source code")
             catalog[code] = {"symbol":symbol,"name":str(row["名称"]),"kind":kind}
         codes = sorted(catalog)
+        db.publish_catalog([dict(id=f"CN.{kind}.{r['symbol']}", market="CN",kind=kind,
+                           symbol=r["symbol"],name=r["name"],source_code=code,currency="CNY")
+                           for code,r in catalog.items()], "CN",kind,collector.day.isoformat(),
+                           "akshare/catalog",full=True)
         with db.connect() as con:
             con.execute("INSERT OR REPLACE INTO universe_snapshots VALUES(?,?,?,?,?,?,?)",
                 ("CN",collector.day.isoformat(),"quotes",kind,json.dumps(codes),len(codes),db.now_iso()))
-        for offset in range(0,len(codes),100):
-            batch=codes[offset:offset+100]
+        for offset in range(0,len(codes),5):
+            if time.monotonic()-began >= collector.cfg.get("close_snapshot_budget_seconds",120):
+                break
+            batch=codes[offset:offset+5]
             batch_key=hashlib.sha256(",".join(batch).encode()).hexdigest()[:16]
             def save(batch=batch):
-                records=collector.call("cn_close_quotes",symbols=batch)
+                records=collector.call("cn_close_quotes",symbols=batch,day=collector.day.isoformat(),kind=kind)
                 valid={}
                 for row in records:
                     stamp=datetime.fromisoformat(row["source_time"])

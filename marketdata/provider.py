@@ -8,6 +8,10 @@ import time
 from pathlib import Path
 
 ALLOWED = {
+    "stock_info_sh_name_code", "stock_info_sz_name_code", "stock_info_bj_name_code",
+    "stock_info_sh_delist", "stock_info_sz_delist",
+    "stock_tfp_em", "news_economic_baidu",
+    "stock_individual_fund_flow", "stock_news_em", "stock_fund_flow_industry",
     "cn_close_quotes",
     "cn_suspensions",
     "stock_info_a_code_name", "stock_zh_a_hist_tx", "stock_zh_a_daily", "fund_etf_category_sina", "fund_etf_hist_sina",
@@ -60,24 +64,12 @@ def adapt_frame(endpoint, frame, kwargs):
     return frame
 
 
-def check_lhb_publication(endpoint, kwargs):
-    """Recognize the source's explicit empty report, not arbitrary AKShare errors."""
-    reports = {"stock_lhb_detail_em": "RPT_DAILYBILLBOARD_DETAILSNEW",
-               "stock_lhb_jgmmtj_em": "RPT_ORGANIZATION_TRADE_DETAILS"}
-    if endpoint not in reports:
-        return
-    import requests
-    from datetime import datetime
+def check_lhb_publication(payload):
+    """Validate the response already obtained by AKShare; never issue a second fetch."""
     from .normalize import PendingData
-    start, end = (datetime.strptime(kwargs[k], "%Y%m%d").date().isoformat() for k in ("start_date", "end_date"))
-    response = requests.get("https://datacenter-web.eastmoney.com/api/data/v1/get",
-        params={"reportName": reports[endpoint], "columns": "ALL", "pageSize": "1", "pageNumber": "1",
-                "filter": f"(TRADE_DATE>='{start}')(TRADE_DATE<='{end}')"}, timeout=15)
-    response.raise_for_status()
-    payload = response.json()
     if payload.get("code") == 9201 and payload.get("success") is False and payload.get("result") is None:
-        raise PendingData("source report empty (9201): not yet published or no-record state unverified")
-    if payload.get("success") is not True or not isinstance(payload.get("result"), dict):
+        raise PendingData("source report empty (9201): no-disclosure state unverified")
+    if payload.get("success") is not True or not isinstance(payload.get("result"),dict):
         raise ValueError("unexpected LHB publication response")
 
 
@@ -93,7 +85,8 @@ class AKProvider:
             with tempfile.TemporaryDirectory(prefix="market-call-") as folder:
                 request = Path(folder) / "request.json"
                 response = Path(folder) / "response.json"
-                request.write_text(json.dumps({"endpoint": endpoint, "kwargs": kwargs}), encoding="utf-8")
+                request.write_text(json.dumps({"endpoint": endpoint, "kwargs": kwargs,
+                    "transport": self.config.get("akshare_transport", "requests")}), encoding="utf-8")
                 try:
                     environment = os.environ.copy()
                     if not self.config.get("use_system_proxy", True):
@@ -125,6 +118,9 @@ class AKProvider:
 
 
 def child(request, response):
+    import requests
+    original_get_before=requests.get
+    original_init_before=requests.sessions.Session.__init__
     if os.getenv("MARKET_DIRECT_REQUESTS") == "1":
         import requests
         original_init = requests.sessions.Session.__init__
@@ -138,6 +134,28 @@ def child(request, response):
     try:
         if args["endpoint"] not in ALLOWED:
             raise ValueError("endpoint is not allowed")
+        if args.get("transport") == "curl_cffi":
+            import requests
+            from curl_cffi import requests as curl_requests
+            def transport_get(url, **kwargs):
+                kwargs.setdefault("timeout", 15)
+                kwargs["impersonate"] = "chrome"
+                with curl_requests.Session(trust_env=os.getenv("MARKET_DIRECT_REQUESTS") != "1") as session:
+                    return session.get(url, **kwargs)
+            # The AKShare function, URL, parameters and parsing remain the same.
+            # Only HTTP transport changes inside this disposable process.
+            requests.get = transport_get
+        elif args.get("transport", "requests") != "requests":
+            raise ValueError("unsupported AKShare transport")
+        if args["endpoint"] in ("stock_lhb_detail_em","stock_lhb_jgmmtj_em"):
+            import requests
+            original_get=requests.get
+            def lhb_get(url, **kwargs):
+                reply=original_get(url,**kwargs)
+                reply.raise_for_status()
+                check_lhb_publication(reply.json())
+                return reply
+            requests.get=lhb_get
         if args["endpoint"] == "cn_suspensions":
             from .suspensions import fetch
             rows = fetch(**args["kwargs"])
@@ -145,48 +163,25 @@ def child(request, response):
             from .quotes import fetch
             rows = fetch(**args["kwargs"])
         elif args["endpoint"] == "us_watchlist_catalog":
-            # Metadata only: query the same Eastmoney source for configured symbols.
-            # Avoid downloading >10,000 live quotes merely to resolve a few codes.
-            import requests
             symbols = args["kwargs"]["symbols"]
             if len(symbols)>100 or any(not s or any(c not in "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-" for c in s) for s in symbols):
                 raise ValueError("invalid or oversized US symbol batch")
-            http_response = requests.get("https://push2.eastmoney.com/api/qt/ulist.np/get",
-                params={"secids": ",".join(f"{m}.{s}" for s in symbols for m in (105,106,107)),
-                        "fields":"f12,f13,f14","fltt":2}, timeout=20)
-            http_response.raise_for_status()
-            payload = http_response.json()
-            if payload.get("rc") != 0:
-                raise ValueError("source returned unsuccessful metadata response")
-            entries = (payload.get("data") or {}).get("diff", [])
-            if isinstance(entries, dict):
-                entries = list(entries.values())
-            rows = [{"代码":str(r["f13"])+"."+r["f12"],"名称":r["f14"]}
-                    for r in entries if r["f12"] in symbols and r["f13"] in (105,106,107)]
+            frame = ak.stock_us_spot_em()
+            rows = [{"代码":str(r["代码"]),"名称":r["名称"]}
+                    for r in frame.to_dict("records") if str(r["代码"]).split(".",1)[-1] in symbols]
         else:
-            check_lhb_publication(args["endpoint"], args["kwargs"])
             frame = getattr(ak, args["endpoint"])(**args["kwargs"])
             frame = adapt_frame(args["endpoint"], frame, args["kwargs"])
             # pandas safely converts NaN/NaT/numpy values; no pickle across processes.
             rows = json.loads(frame.to_json(orient="records", date_format="iso", force_ascii=False))
-            if args["endpoint"] == "fund_etf_hist_sina":
-                from .sina_recent import supplement
-                try:
-                    rows=supplement(args["kwargs"]["symbol"],rows)
-                except Exception:
-                    pass  # Keep the archive; missing target remains pending.
-            if args["endpoint"].endswith("_index_ths"):
-                from .ths_recent import supplement
-                try:
-                    rows=supplement(args["endpoint"],args["kwargs"],rows)
-                except Exception:
-                    # Preserve verified annual history. Caller still marks a missing target pending.
-                    pass
         result = {"rows": rows}
     except Exception as exc:
         # Avoid persisting upstream URLs or credentials in diagnostics.
         from .normalize import PendingData
         result = {"pending": str(exc)} if isinstance(exc, PendingData) else {"error": type(exc).__name__}
+    finally:
+        requests.get=original_get_before
+        requests.sessions.Session.__init__=original_init_before
     Path(response).write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")
 
 
