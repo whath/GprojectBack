@@ -69,7 +69,7 @@ def report(limit, now=None):
     with db.connect() as con:
         saved = con.execute("SELECT * FROM feed_snapshots WHERE feed_key='events'").fetchone()
     if saved is None:
-        raise HTTPException(501, "verified AKShare events not yet available")
+        raise HTTPException(503, "news events implemented but not yet collected")
     if saved["status"] != "complete":
         raise HTTPException(503, "events collection failed; retry later")
     try:

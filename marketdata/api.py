@@ -36,7 +36,7 @@ async def lifespan(app):
     yield
 
 
-app=FastAPI(title="Personal EOD Market API",version="0.4.1",lifespan=lifespan,
+app=FastAPI(title="Personal EOD Market API",version="0.4.2",lifespan=lifespan,
             description="收盘数据服务；CN 交易日北京时间 15:10、17:10、19:10 三轮采集；美股行业 ETF 代理排名和可编辑 AI 观察池。")
 
 if config().get("cors_origins"):
@@ -338,6 +338,7 @@ def economic_calendar(trade_date:date,limit:int=Query(100,ge=1,le=500)):
 @app.get("/v1/capabilities",dependencies=[Depends(authorize)])
 def capabilities():
     from importlib.metadata import version
+    from .availability import report as availability_report
     return {"provider":"akshare","version":version("akshare"),
             "stock_funds":{"implemented":True,"source":"stock_individual_fund_flow",
                            "transport":config().get("funds_transport","curl_cffi"),
@@ -345,7 +346,8 @@ def capabilities():
             "ths_members":{"implemented":False,"reason":"no verified complete function in pinned AKShare"},
             "ths_board_funds":{"implemented":False,"reason":"public industry table lacks dated daily history and required amount precision"},
             "events":{"news":True,"scheduled_calendar":False,"coverage":"configured keyword search only",
-                      "economic_facts":True,"economic_endpoint":"/v1/economic-calendar"}}
+                      "economic_facts":True,"economic_endpoint":"/v1/economic-calendar"},
+            "data_availability":availability_report(config())}
 
 
 @app.get("/v1/catalog-coverage",dependencies=[Depends(authorize)])

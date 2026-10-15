@@ -214,7 +214,7 @@ def test_new_routes_auth_and_unavailable_statuses_preserve_bars():
         paths=("/v1/events","/v1/cn/stocks/CN.stock.000001/flows","/v1/cn/boards/CN.industry.THS_881121/flows")
         for path in paths:
             assert client.get(path).status_code==401
-            assert client.get(path,headers=HEADERS).status_code==501
+            assert client.get(path,headers=HEADERS).status_code==(501 if "/boards/" in path else 503)
         assert client.get("/v1/bars/CN.stock.000001?end=2026-09-30",headers=HEADERS).status_code==200
         assert client.get("/v1/cn/stocks/US.stock.NVDA/flows",headers=HEADERS).status_code==422
         assert client.get("/v1/cn/boards/CN.industry.BK001/flows",headers=HEADERS).status_code==422

@@ -96,7 +96,9 @@ def report(identifier, limit, end=None):
     with db.connect() as con:
         row = con.execute("SELECT * FROM feed_snapshots WHERE feed_key=?", ("flows:" + identifier,)).fetchone()
     if row is None:
-        raise HTTPException(501, "verified AKShare funds snapshot not yet available")
+        if identifier.startswith("CN.stock."):
+            raise HTTPException(503, "stock funds implemented but not yet collected")
+        raise HTTPException(501, "no verified AKShare THS daily board funds source")
     if row["status"] != "complete":
         raise HTTPException(503, "funds collection failed; retry later")
     try:

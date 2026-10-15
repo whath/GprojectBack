@@ -199,4 +199,4 @@ def test_economic_facts_do_not_invent_event_publication_or_refresh_unchanged_ver
     assert first["updated_at"]==second["updated_at"] and first["items"][0]["updated_at"]==row["updated_at"]
     with TestClient(app) as client:
         assert client.get("/v1/economic-calendar?trade_date=2026-10-05",headers=HEADERS).status_code==200
-        assert client.get("/v1/events",headers=HEADERS).status_code==501
+        assert client.get("/v1/events",headers=HEADERS).status_code==503

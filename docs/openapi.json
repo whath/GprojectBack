@@ -3,7 +3,7 @@
   "info": {
     "title": "Personal EOD Market API",
     "description": "收盘数据服务；CN 交易日北京时间 15:10、17:10、19:10 三轮采集；美股行业 ETF 代理排名和可编辑 AI 观察池。",
-    "version": "0.4.1"
+    "version": "0.4.2"
   },
   "paths": {
     "/healthz": {
