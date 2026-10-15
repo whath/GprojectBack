@@ -78,7 +78,9 @@ def quote_headers():
 
 def supplement(endpoint,kwargs,annual):
     target=datetime.strptime(kwargs["end_date"],"%Y%m%d").date().isoformat()
-    if any(normalize.day_string(r["日期"])==target for r in annual):return annual
+    from .calendars import CN
+    current=target==datetime.now(CN).date().isoformat()
+    if not current and any(normalize.day_string(r["日期"])==target for r in annual):return annual
     import akshare as ak
     import requests
     headers={"User-Agent":BROWSER_UA,"Referer":"https://q.10jqka.com.cn/"}
@@ -101,8 +103,19 @@ def supplement(endpoint,kwargs,annual):
     headers=quote_headers()
     response=requests.get(f"https://d.10jqka.com.cn/v4/line/bk_{code}/01/last.js",headers=headers,timeout=15)
     response.raise_for_status()
-    history=merge(annual,parse_recent(response.text),target)
-    if any(normalize.day_string(r['日期'])==target for r in history):return history
+    recent=parse_recent(response.text)
+    # A dated current-year archive row may still be an intraday cached candle.
+    # Pin historical identity independently; the explicitly post-close current
+    # candle can revise today only. db.put_bars retains the previous version.
+    if current:
+        history=merge([r for r in annual if normalize.day_string(r['日期'])<target],
+                      [r for r in recent if normalize.day_string(r['日期'])<target],target)
+    else:
+        return merge(annual,recent,target)
     response=requests.get(f"https://d.10jqka.com.cn/v4/line/bk_{code}/01/today.js",headers=headers,timeout=15)
     response.raise_for_status()
-    return history+[parse_today(response.text,code,target,history)]
+    quote=parse_today(response.text,code,target,history)
+    old=next((r for r in annual if normalize.day_string(r['日期'])==target),None)
+    if old and abs(float(old['开盘'])-float(quote['开盘']))>0.001:
+        raise ValueError('THS current/archive opening value conflict')
+    return history+[quote]

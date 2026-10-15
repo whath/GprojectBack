@@ -200,6 +200,11 @@ def child(request, response):
                 except Exception as exc:
                     # Keep independently valid archive rows; caller marks a missing target pending.
                     supplementary_evidence=dict(status='not_applied',error=type(exc).__name__)
+                    if args['endpoint'].endswith('_index_ths'):
+                        from .calendars import CN
+                        if args['kwargs']['end_date']==datetime.now(CN).strftime('%Y%m%d'):
+                            from .normalize import PendingData
+                            raise PendingData('THS current post-close candle unverified; existing stored history retained') from None
         result = {"rows": rows, "supplementary_evidence":supplementary_evidence}
     except Exception as exc:
         # Avoid persisting upstream URLs or credentials in diagnostics.
