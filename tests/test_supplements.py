@@ -45,6 +45,16 @@ def test_reference_source_anomalies_are_quarantined_without_fabricating_holiday_
     assert rejected==[dict(trade_date='2026-10-12',reason='index date is not a local market session')]
 
 
+def test_foreign_index_collection_is_not_blocked_by_a_china_holiday(monkeypatch):
+    from marketdata.settings import config
+    monkeypatch.setattr(s,'INDICES',{'JP.index.N225':s.INDICES['JP.index.N225']})
+    monkeypatch.setattr(s,'validate_collection',lambda *a,**kw: (_ for _ in ()).throw(ValueError('CN closed')))
+    visited=[]
+    monkeypatch.setattr(s,'collect_index',lambda provider,identifier,day: visited.append(identifier) or 1)
+    result=s.run(config(),date(2026,10,1),['indices'])
+    assert result['status']=='complete' and visited==['JP.index.N225']
+
+
 def test_source_pinning_atomic_merge_and_historical_query_never_leak_future_rows():
     key = 'index:CN.index.sh000001'
     meta = dict(source='test', instrument_id='CN.index.sh000001')

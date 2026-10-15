@@ -138,6 +138,8 @@ def index_rows(rows, identifier, target, count=2000, quarantine=None):
 def collect_index(provider, identifier, day, count=2000):
     spec = INDICES[identifier]
     target = min(day, reference_target(spec['market']))
+    if spec['market']=='CN':
+        validate_collection('CN',target,config())
     endpoint = 'stock_zh_index_daily' if spec['market'] == 'CN' else 'index_global_hist_sina'
     source_symbol = {'JP':'日经225指数','KR':'首尔综合指数'}.get(spec['market'],spec['symbol'])
     raw = provider.call(endpoint, symbol=source_symbol)
@@ -356,7 +358,9 @@ def run(cfg, day, features, symbols=None, output=None):
     from pathlib import Path
     from .provider import AKProvider
     from .pipeline import CollectorLock
-    validate_collection('CN', day, cfg)
+    # Foreign reference indices have their own sessions, including China holidays.
+    if set(features)-{'indices'}:
+        validate_collection('CN', day, cfg)
     base = dict(cfg, request_attempts=1, request_timeout_seconds=35, request_spacing_seconds=1)
     provider = AKProvider(base)
     curl = AKProvider(dict(base, akshare_transport='curl_cffi'))
@@ -387,8 +391,9 @@ def run(cfg, day, features, symbols=None, output=None):
     results = []
     with CollectorLock():
         for key, action in jobs:
-            validate_collection('CN', day, cfg)
             try:
+                if not key.startswith('index:'):
+                    validate_collection('CN', day, cfg)
                 count = action()
                 db.feed_attempt(key, 'complete')
                 result = dict(feed_key=key, status='complete', rows=count)
