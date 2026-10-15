@@ -8,22 +8,26 @@
     "independently_verified": false
   },
   "public_https_acceptance": {
-    "status": "blocked",
-    "label": "等待域名解析和公网验收",
-    "depends_on": [
-      "dns_a_record",
-      "nginx_start",
-      "certificate_and_network_acceptance"
-    ],
+    "status": "verified",
+    "label": "已验收",
     "checked_on": "2026-10-15",
-    "reason": "两家公共 DNS 均未返回根域名 A 记录；云端 nginx 未运行，HTTPS 未验收"
+    "dns_a_record": "39.96.22.254",
+    "tls_certificate_expires": "2026-12-29",
+    "certificate_renewal_dry_run": "passed",
+    "desktop_https": "passed",
+    "mobile_cellular_https": "user_confirmed_passed",
+    "http_redirect_status": 301,
+    "unauthorized_status": 401,
+    "public_docs_status": 404
   },
-  "server_changes_performed": false,
+  "server_changes_performed": true,
   "runtime": {
     "checked_on": "2026-10-15",
-    "server_api_version": "0.3.0",
+    "server_api_version": "0.4.1",
     "local_api_version": "0.4.1",
     "worker": "inactive_disabled_by_user",
-    "automatic_monitoring": "paused_by_user"
+    "automatic_monitoring": "paused_by_user",
+    "release_commit": "6a2976148fe225b159cab72fbbb6ec668e6642d6",
+    "data_acceptance_date": "2026-10-14"
   }
 }
