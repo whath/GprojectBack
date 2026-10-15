@@ -86,3 +86,18 @@ def test_failed_post_close_check_cannot_publish_a_cached_current_archive_as_comp
     child(request,response)
     result=json.loads(response.read_text())
     assert 'post-close candle unverified' in result['pending'] and 'rows' not in result
+
+
+def test_collect_cli_keeps_configured_close_checks_unless_explicitly_overridden(monkeypatch):
+    import sys
+    import marketdata.__main__ as cli
+    monkeypatch.setattr(cli,'config',lambda:{'same_source_close_supplements':True})
+    recorded=[]
+    class Collector:
+        def __init__(self,*args,**kwargs):recorded.append(kwargs['settings']['same_source_close_supplements'])
+        def run(self):return {'status':'complete'}
+    monkeypatch.setattr(cli,'Collector',Collector)
+    for extra,expected in [([],True),(['--no-same-source-close'],False),(['--same-source-close'],True)]:
+        monkeypatch.setattr(sys,'argv',['marketdata','collect','--market','CN','--date','2026-10-15','--sample',*extra])
+        with pytest.raises(SystemExit) as exit_info:cli.main()
+        assert exit_info.value.code==0 and recorded[-1] is expected

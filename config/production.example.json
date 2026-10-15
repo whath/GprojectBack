@@ -1,4 +1,5 @@
 {
+  "same_source_close_supplements": true,
   "history_days": 760,
   "cn_stock_funds_enabled": true,
   "funds_transport": "curl_cffi",

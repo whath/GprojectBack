@@ -185,7 +185,7 @@ def child(request, response):
             frame = adapt_frame(args["endpoint"], frame, args["kwargs"])
             # pandas safely converts NaN/NaT/numpy values; no pickle across processes.
             rows = json.loads(frame.to_json(orient="records", date_format="iso", force_ascii=False))
-            if args.get('same_source_close_supplements'):
+            if args.get('same_source_close_supplements') and (args['endpoint']=='fund_etf_hist_sina' or args['endpoint'].endswith('_index_ths')):
                 # Explicit manual option: same publisher, dated close, verified overlap.
                 # These HTTP supplements are our adapters, not additional AKShare functions.
                 try:

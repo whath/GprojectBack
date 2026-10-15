@@ -21,7 +21,8 @@ def main():
     collect.add_argument("--date",type=date.fromisoformat)
     collect.add_argument("--sample",action="store_true")
     collect.add_argument("--refresh",action="store_true",help="also re-fetch successful history tasks")
-    collect.add_argument("--same-source-close",action="store_true",help="manually enable validated Sina/THS close supplements")
+    collect.add_argument("--same-source-close",action=argparse.BooleanOptionalAction,default=None,
+                         help="use configured validated close adapters; --no-same-source-close is for source diagnostics")
     collect.add_argument("--raw-dir",type=Path)
     commands.add_parser("worker")
     funds=commands.add_parser("collect-funds")
@@ -52,9 +53,11 @@ def main():
     args=parser.parse_args()
     db.init()
     if args.command=="collect":
-        day=args.date or latest_ready(args.market,config())
+        cfg=config()
+        day=args.date or latest_ready(args.market,cfg)
+        closing=cfg.get('same_source_close_supplements',False) if args.same_source_close is None else args.same_source_close
         result=Collector(args.market,day,args.sample,refresh=args.refresh,
-                         settings=dict(config(),same_source_close_supplements=args.same_source_close,
+                         settings=dict(cfg,same_source_close_supplements=closing,
                                        raw_response_dir=str(args.raw_dir) if args.raw_dir else None)).run()
         if not args.sample:
             from .operations import refresh_alerts
