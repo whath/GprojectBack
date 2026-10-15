@@ -23,33 +23,57 @@
   "server_changes_performed": true,
   "runtime": {
     "checked_on": "2026-10-15",
-    "server_api_version": "0.4.2",
-    "local_api_version": "0.4.2",
+    "server_api_version": "0.5.0",
+    "local_api_version": "0.5.0",
     "worker": "inactive_disabled_by_user",
     "automatic_monitoring": "paused_by_user",
-    "release_commit": "908e095998c0a743ddf5a1ed9a95088e50ed8a4b",
+    "release_commit": "0b7e69ec15cb200e17e31f9294d257c22047640f",
     "data_acceptance_date": "2026-10-14",
-    "client_acceptance_date": "2026-10-15"
+    "client_acceptance_date": "2026-10-15",
+    "data_acceptance_dates": {
+      "CN": "2026-10-15",
+      "US": "2026-10-14"
+    }
   },
   "client_integration": {
     "checked_on": "2026-10-15",
     "client_baseline_commit": "d4473803200076999bee90f9926c83ae702a09ee",
-    "client_delivery_commit": "fdcd8ff1694144c544841e0d2c9ef6fc0b97fb8a",
-    "api_version": "0.4.2",
+    "client_delivery_commit": "b4502d0a3010b5d62d32b2071b6ddd7a8393264c",
+    "api_version": "0.5.0",
     "core_path_templates": 9,
     "core_source_blocked_templates": 2,
-    "remaining_gap_groups": 11,
-    "client_tests": 84,
+    "remaining_gap_groups": 7,
+    "client_tests": 88,
     "client_live_https": "passed",
     "android_build": "passed",
     "android_device_install": "not_performed",
     "full_configured_acceptance_date": "2026-10-14",
     "current_cn_trade_date": "2026-10-15",
-    "current_cn_available_series": 8,
+    "current_cn_available_series": 112,
     "current_cn_expected_series": 112,
-    "current_cn_pending_series": 104,
+    "current_cn_pending_series": 0,
     "configured_stocks_with_250_sessions": 5,
     "stock_funds_records": 605,
-    "news_active_records": 48
+    "news_active_records": 48,
+    "verified_catalog_stocks_250_sessions": 96,
+    "full_configured_market_dates": {
+      "CN": "2026-10-15",
+      "US": "2026-10-14"
+    }
+  },
+  "free_data_delivery": {
+    "checked_on": "2026-10-15",
+    "backend_tests": 151,
+    "public_api_checks": 33,
+    "indices": 7,
+    "minute_rows": 1205,
+    "valuation_rows": 8612,
+    "reported_limit_up_rows": 36,
+    "fomc_meetings": 16,
+    "configured_cn_daily": "112/112",
+    "configured_stock_etf_250": "7/7",
+    "catalog_stock_250": "96/5576",
+    "automatic_jobs": "paused_by_user",
+    "detail": "docs/FREE-DATA-DELIVERY-20261015.md"
   }
 }

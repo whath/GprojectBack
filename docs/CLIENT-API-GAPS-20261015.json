@@ -1,84 +1,107 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "checked_on": "2026-10-15",
-  "client_delivery_commit": "fdcd8ff1694144c544841e0d2c9ef6fc0b97fb8a",
-  "backend_application_commit": "908e095998c0a743ddf5a1ed9a95088e50ed8a4b",
-  "core_path_templates": 9,
+  "checked_at": "2026-10-15T11:37:21.869402+00:00",
+  "backend_application_commit": "0b7e69ec15cb200e17e31f9294d257c22047640f",
+  "client_delivery_commit": "b4502d0a3010b5d62d32b2071b6ddd7a8393264c",
+  "api_version": "0.5.0",
+  "implemented_api_paths": 33,
+  "baseline_core_path_templates": 9,
   "missing_core_route_templates": 0,
   "source_blocked_core_templates": 2,
-  "remaining_gap_groups": 11,
+  "previous_gap_groups": 11,
+  "resolved_gap_groups": 4,
+  "remaining_gap_groups": 7,
+  "resolved_gaps": [
+    {
+      "id": "G04",
+      "feature": "配置池当日 ETF/板块日线",
+      "status": "verified",
+      "scope": "CN 112/112 at 2026-10-15; current THS post-close checks applied"
+    },
+    {
+      "id": "G06",
+      "feature": "A 股/日韩指数",
+      "status": "verified",
+      "scope": "7 configured indices, separate calendars and point units; 19 anomalous historical rows quarantined"
+    },
+    {
+      "id": "G08",
+      "feature": "近期分钟线",
+      "status": "verified",
+      "scope": "5 configured stocks, 241 observed points each; recent provider window only"
+    },
+    {
+      "id": "G09",
+      "feature": "估值市值及换手率",
+      "status": "verified",
+      "scope": "5 configured stocks; dated valuation; turnover derived only with same-day share evidence"
+    }
+  ],
   "gaps": [
     {
       "id": "G01",
       "feature": "完整 THS 同日成员及反向归属",
       "category": "core_source_blocked",
-      "source_coverage": "no_verified_complete_source"
+      "status": "deferred_account_or_licensed_source",
+      "source_coverage": "no verified complete account-free source",
+      "next_action": "暂缓积分/授权来源；不混入其他分类成员"
     },
     {
       "id": "G02",
       "feature": "THS 逐日板块资金",
       "category": "core_source_blocked",
-      "source_coverage": "no_qualified_dated_daily_source"
+      "status": "deferred_account_or_licensed_source",
+      "source_coverage": "dated daily main/all definition and amount precision not qualified",
+      "next_action": "暂缓积分/授权来源；不把无日期即时表拼成逐日资金"
     },
     {
       "id": "G03",
-      "feature": "全目录历史和资金覆盖",
+      "feature": "全目录历史及长期资金覆盖",
       "category": "coverage_gap",
-      "source_coverage": "partial_source_window_and_partial_ingestion"
-    },
-    {
-      "id": "G04",
-      "feature": "本日 ETF/板块时效",
-      "category": "coverage_gap",
-      "source_coverage": "target_date_absent_for_104_configured_series"
+      "status": "partial_inventory",
+      "source_coverage": "96/5576 registered stocks pass 250-session audit; 5480 not yet verified; funds recent window only",
+      "next_action": "可继续人工有限批次初始化；9 个已尝试样本保留缺日待核验；2000 日资金仍缺源"
     },
     {
       "id": "G05",
-      "feature": "完整计划事件及取消/延期",
+      "feature": "完整计划事件、发布时间及取消延期",
       "category": "scheduled_events_partial",
-      "source_coverage": "keyword_news_only_economic_probe_failed"
-    },
-    {
-      "id": "G06",
-      "feature": "A 股及日韩指数",
-      "category": "p2_backend_and_client",
-      "source_coverage": "candidate_sources_responded"
+      "status": "partial_official_calendar",
+      "source_coverage": "16 FOMC meetings available at date precision; BLS HTTP failed; other calendars unimplemented",
+      "next_action": "继续验证免费官方日历；不猜测源发布时间及取消原因"
     },
     {
       "id": "G07",
       "feature": "黄金布油主连",
       "category": "p2_backend_and_client",
-      "source_coverage": "quote_catalog_only_history_probe_failed"
-    },
-    {
-      "id": "G08",
-      "feature": "分钟线",
-      "category": "p2_backend_and_client",
-      "source_coverage": "recent_minute_candidate_responded"
-    },
-    {
-      "id": "G09",
-      "feature": "估值市值换手率",
-      "category": "p2_backend_and_client",
-      "source_coverage": "dated_valuation_responded_turnover_requires_source"
+      "status": "unverified_history_and_roll_rules",
+      "source_coverage": "quote catalog only; no qualified continuous history",
+      "next_action": "保留缺失状态；未订阅收费行情"
     },
     {
       "id": "G10",
-      "feature": "连板梯队",
+      "feature": "独立连板规则及全市场完整范围",
       "category": "p2_backend_and_client",
-      "source_coverage": "provider_limit_up_pool_responded_rules_not_validated"
+      "status": "provider_reported_only",
+      "source_coverage": "36 reported limit-up rows; ST/IPO/suspension rules not independently certified",
+      "next_action": "可继续规则与元数据核验；当前页面明确标注来源披露"
     },
     {
       "id": "G11",
-      "feature": "国内模型分析",
+      "feature": "模型分析",
       "category": "p3_model_provider",
-      "source_coverage": "market_data_library_has_no_model_inference"
+      "status": "deferred_model_configuration",
+      "source_coverage": "no inference provider configured or invoked",
+      "next_action": "暂缓模型账号、预算和调用；本轮没有模型请求"
     }
   ],
-  "existing_backend_client_consumption_gaps": [
+  "existing_backend_client_consumption_gaps": [],
+  "resolved_client_consumption": [
     "/v1/us/sectors",
-    "/v1/cn/lhb pagination and seats"
+    "/v1/cn/lhb stable complete pagination",
+    "/v1/cn/lhb/{symbol}/seats"
   ],
-  "detail_document": "CLIENT-INTEGRATION-20261015.md",
-  "source_evidence": "CLIENT-SOURCE-EVIDENCE-20261015.json"
+  "detail_document": "FREE-DATA-DELIVERY-20261015.md",
+  "source_evidence": "FREE-DATA-EVIDENCE-20261015.json"
 }

@@ -1,0 +1,150 @@
+{
+  "checked_on": "2026-10-15",
+  "akshare_version": "1.19.1",
+  "api_version": "0.5.0",
+  "data_capture_application_commit": "4e6c22757a0ad57dfecb43c25cb0c63955f68e3d",
+  "backend_application_commit": "0b7e69ec15cb200e17e31f9294d257c22047640f",
+  "client_delivery_commit": "b4502d0a3010b5d62d32b2071b6ddd7a8393264c",
+  "introduced_paid_providers": [],
+  "added_vendor_accounts": [],
+  "configured_cn": {
+    "stock": {
+      "expected": 5,
+      "available": 5,
+      "complete": true
+    },
+    "etf": {
+      "expected": 2,
+      "available": 2,
+      "complete": true
+    },
+    "industry": {
+      "expected": 90,
+      "available": 90,
+      "complete": true
+    },
+    "concept": {
+      "expected": 15,
+      "available": 15,
+      "complete": true
+    }
+  },
+  "configured_cn_data_complete": true,
+  "stock_history": {
+    "trade_date": "2026-10-15",
+    "window": 250,
+    "scope": "catalog",
+    "expected": 5576,
+    "complete_count": 96,
+    "incomplete_count": 5480
+  },
+  "configured_stock_etf_250_sessions": 7,
+  "extended_stock_batch": {
+    "attempted": 100,
+    "newly_verified": 91,
+    "pending": 9
+  },
+  "supplemental": {
+    "indices": 7,
+    "index_rows": 11623,
+    "quarantined_index_rows": 19,
+    "minute_stocks": 5,
+    "minute_rows": 1205,
+    "valuation_stocks": 5,
+    "valuation_rows": 8612,
+    "limit_up_reported_rows": 36,
+    "fomc_meetings": 16
+  },
+  "data_pipeline_audit": {
+    "status": "passed",
+    "raw_to_db_matched_bars": 30489,
+    "matched_fields": 243912,
+    "raw_rows_not_in_selected_inventory": 9802,
+    "api_series": 207,
+    "http_checks": 208,
+    "industry_close_crosscheck": {
+      "matched_industries": 90,
+      "max_absolute_difference": 0.04800000000250293,
+      "basis": "earlier same-day undated publisher summary, rounded index field; not exchange verification or daily funds"
+    },
+    "configured_cn": {
+      "stock": {
+        "expected": 5,
+        "available": 5,
+        "complete": true,
+        "missing_count": 0,
+        "missing_ids": [],
+        "coverage_pct": 100.0,
+        "catalog_count": null
+      },
+      "etf": {
+        "expected": 2,
+        "available": 2,
+        "complete": true,
+        "missing_count": 0,
+        "missing_ids": [],
+        "coverage_pct": 100.0,
+        "catalog_count": null
+      },
+      "industry": {
+        "expected": 90,
+        "available": 90,
+        "complete": true,
+        "missing_count": 0,
+        "missing_ids": [],
+        "coverage_pct": 100.0,
+        "catalog_count": null
+      },
+      "concept": {
+        "expected": 15,
+        "available": 15,
+        "complete": true,
+        "missing_count": 0,
+        "missing_ids": [],
+        "coverage_pct": 100.0,
+        "catalog_count": null
+      }
+    },
+    "stock_history": {
+      "trade_date": "2026-10-15",
+      "window": 250,
+      "scope": "catalog",
+      "expected": 5576,
+      "complete_count": 96,
+      "incomplete_count": 5480
+    }
+  },
+  "client_validation": {
+    "tests": 88,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "credential_absent_from_apk": true,
+    "apk_sha256": "5afa09088b8402e96de93b760ec05353e12932848c8079ee3091b85f8f6652f5",
+    "apk_bytes": 18829262,
+    "live_test": {
+      "name": "liveBackendContractWhenExplicitlyConfigured[desktop]",
+      "classname": "cn.gproject.BackendIntegrationTest",
+      "time": "8.353"
+    }
+  },
+  "backend_tests": 151,
+  "public_supplemental_http_checks": 33,
+  "database_restore": {
+    "sha256": "0ad47bcc0737c3e95281777e47067e44e858134b6ba5d406c9ec23e959d194fb",
+    "bytes": 32731136,
+    "integrity": "ok",
+    "foreign_keys": "ok",
+    "schema_version": 5
+  },
+  "worker": {
+    "is-active": "inactive",
+    "is-enabled": "disabled"
+  },
+  "automatic_jobs": "remain paused by user; all new collection is finite manual execution",
+  "concept_closing_verification": {
+    "verified": 15,
+    "changed": 0
+  },
+  "private_evidence": "data/free-completion-20261015/final (not committed)"
+}
