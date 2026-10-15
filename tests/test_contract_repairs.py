@@ -236,7 +236,7 @@ def test_same_day_member_pages_keep_status_and_unique_ids():
         assert client.get(path.replace("2026-09-30","2026-09-29"),headers=HEADERS).json()["items"]==[]
 
 
-def test_event_versions_expiry_and_importance_order():
+def test_event_versions_expiry_and_importance_order(event_clock):
     now=datetime(2026,10,1,12,tzinfo=timezone.utc)
     old=event(summary="old")
     revised=event(summary="revised",updated_at="2026-10-01T00:00:00+00:00")
@@ -257,7 +257,7 @@ def test_bad_event_contract_rejected(changes):
     with pytest.raises(ValueError):save_events({"updated_at":STAMP,"items":[event(**changes)]})
 
 
-def test_news_same_url_merges_markets_and_keeps_old_feed_time():
+def test_news_same_url_merges_markets_and_keeps_old_feed_time(event_clock):
     class Provider:
         def call(self,*a,**kw):
             return [{"新闻链接":"http://finance.eastmoney.com/a/20260101001.html","新闻标题":"news",
@@ -339,7 +339,7 @@ def test_db_lock_has_retriable_status(monkeypatch):
         assert response.status_code==503 and response.headers["Retry-After"]=="5"
 
 
-def test_event_old_versions_do_not_overwrite_stored_newer_version():
+def test_event_old_versions_do_not_overwrite_stored_newer_version(event_clock):
     latest=event(summary="latest",updated_at="2026-10-01T00:00:00+00:00")
     save_events({"updated_at":"2026-10-01T00:00:00+00:00","items":[latest]})
     save_events({"updated_at":"2026-10-02T00:00:00+00:00","items":[event(summary="old")]})

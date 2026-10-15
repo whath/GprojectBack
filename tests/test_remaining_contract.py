@@ -136,7 +136,7 @@ def test_same_funds_version_cannot_change_a_stored_value():
         save_funds(flow(items=[{"trade_date":"2026-09-30","net":200}]),"CN.stock.000001")
 
 
-def test_news_search_rolloff_does_not_remove_verified_market_association():
+def test_news_search_rolloff_does_not_remove_verified_market_association(event_clock):
     class Provider:
         def call(self,*a,**kw):
             return [{"新闻链接":"https://finance.eastmoney.com/a/test.html","新闻标题":"title",
@@ -172,7 +172,10 @@ def test_akshare_suspension_does_not_promote_intraday_or_resume_to_full_session(
     assert [r["symbol"] for r in fetch("2026-09-30")]==["000002"]
 
 
-def test_deployment_waiting_does_not_change_authenticated_business_routes():
+def test_deployment_waiting_does_not_change_authenticated_business_routes(tmp_path,monkeypatch):
+    status_file=tmp_path/"deployment.json"
+    status_file.write_text(json.dumps({"icp_filing":{"label":"等待落地"},"server_changes_performed":False}),encoding="utf-8")
+    monkeypatch.setenv("DEPLOYMENT_STATUS_PATH",str(status_file))
     with TestClient(app) as client:
         assert client.get("/v1/deployment-status").status_code==401
         state=client.get("/v1/deployment-status",headers=HEADERS).json()

@@ -1,15 +1,29 @@
 {
   "domain": "ericcself.top",
   "icp_filing": {
-    "status": "waiting_for_implementation",
-    "label": "等待落地",
-    "reason": "用户确认域名正在备案审核",
-    "confirmed_on": "2026-10-04"
+    "status": "approved_user_confirmed",
+    "label": "已通过（用户确认）",
+    "reason": "用户于 2026-10-15 确认 ICP 备案通过；本轮未独立查询备案号",
+    "confirmed_on": "2026-10-15",
+    "independently_verified": false
   },
   "public_https_acceptance": {
-    "status": "waiting_for_implementation",
-    "label": "等待落地",
-    "depends_on": ["icp_filing", "server_access", "certificate_and_network_acceptance"]
+    "status": "blocked",
+    "label": "等待域名解析和公网验收",
+    "depends_on": [
+      "dns_a_record",
+      "nginx_start",
+      "certificate_and_network_acceptance"
+    ],
+    "checked_on": "2026-10-15",
+    "reason": "两家公共 DNS 均未返回根域名 A 记录；云端 nginx 未运行，HTTPS 未验收"
   },
-  "server_changes_performed": false
+  "server_changes_performed": false,
+  "runtime": {
+    "checked_on": "2026-10-15",
+    "server_api_version": "0.3.0",
+    "local_api_version": "0.4.1",
+    "worker": "inactive_disabled_by_user",
+    "automatic_monitoring": "paused_by_user"
+  }
 }
