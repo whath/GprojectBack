@@ -11,7 +11,7 @@ from datetime import date, timedelta
 MEMBERSHIP_NAMES = ("stock_board_cons_ths", "stock_board_industry_cons_ths", "stock_board_concept_cons_ths")
 ALLOWED = {"stock_fund_flow_industry", "stock_individual_fund_flow", "stock_news_em",
            "news_economic_baidu", "stock_zh_index_daily", "index_global_hist_em",
-           "futures_global_spot_em", "futures_global_hist_em", "stock_zh_a_hist_min_em", "stock_individual_info_em", "stock_zt_pool_em"}
+           "futures_global_spot_em", "futures_global_hist_em", "stock_zh_a_hist_min_em", "stock_individual_info_em", "stock_value_em", "stock_zt_pool_em"}
 
 
 def child(request, response):
@@ -64,6 +64,7 @@ def main():
         ('stock_zh_a_hist_min_em', {'symbol': '000001', 'period': '1', 'adjust': '',
                                   'start_date': str(args.date) + ' 09:00:00', 'end_date': str(args.date) + ' 15:30:00'}),
         ('stock_individual_info_em', {'symbol': '000001'}),
+        ('stock_value_em', {'symbol': '000001'}),
         ('stock_zt_pool_em', {'date': day}),
     ]
     result = dict(akshare_version=importlib.metadata.version('akshare'), trade_date=str(args.date),
@@ -85,7 +86,7 @@ def main():
         rows = data.get('rows', [])
         summary = dict(endpoint=endpoint, kwargs=kwargs, transport=transport, status='response' if rows else 'failed', count=len(rows),
                        fields=sorted({key for row in rows for key in row}), error=data.get('error'), raw_file=response.name)
-        dates = [str(row[key])[:10] for row in rows for key in ('日期', 'date', '时间', '发布时间') if row.get(key)]
+        dates = [str(row[key])[:10] for row in rows for key in ('日期', '数据日期', 'date', '时间', '发布时间') if row.get(key)]
         summary['latest_date'] = max(dates, default=None)
         if endpoint == 'futures_global_spot_em':
             summary['gold_oil_candidates'] = [row for row in rows if '00Y' in str(row.get('代码', '')) and any(s in str(row.get('名称', '')) for s in ('黄金', '布伦特'))]

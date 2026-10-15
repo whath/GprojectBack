@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "checked_on": "2026-10-15",
+  "client_delivery_commit": "fdcd8ff1694144c544841e0d2c9ef6fc0b97fb8a",
+  "backend_application_commit": "908e095998c0a743ddf5a1ed9a95088e50ed8a4b",
+  "core_path_templates": 9,
+  "missing_core_route_templates": 0,
+  "source_blocked_core_templates": 2,
+  "remaining_gap_groups": 11,
+  "gaps": [
+    {
+      "id": "G01",
+      "feature": "完整 THS 同日成员及反向归属",
+      "category": "core_source_blocked",
+      "source_coverage": "no_verified_complete_source"
+    },
+    {
+      "id": "G02",
+      "feature": "THS 逐日板块资金",
+      "category": "core_source_blocked",
+      "source_coverage": "no_qualified_dated_daily_source"
+    },
+    {
+      "id": "G03",
+      "feature": "全目录历史和资金覆盖",
+      "category": "coverage_gap",
+      "source_coverage": "partial_source_window_and_partial_ingestion"
+    },
+    {
+      "id": "G04",
+      "feature": "本日 ETF/板块时效",
+      "category": "coverage_gap",
+      "source_coverage": "target_date_absent_for_104_configured_series"
+    },
+    {
+      "id": "G05",
+      "feature": "完整计划事件及取消/延期",
+      "category": "scheduled_events_partial",
+      "source_coverage": "keyword_news_only_economic_probe_failed"
+    },
+    {
+      "id": "G06",
+      "feature": "A 股及日韩指数",
+      "category": "p2_backend_and_client",
+      "source_coverage": "candidate_sources_responded"
+    },
+    {
+      "id": "G07",
+      "feature": "黄金布油主连",
+      "category": "p2_backend_and_client",
+      "source_coverage": "quote_catalog_only_history_probe_failed"
+    },
+    {
+      "id": "G08",
+      "feature": "分钟线",
+      "category": "p2_backend_and_client",
+      "source_coverage": "recent_minute_candidate_responded"
+    },
+    {
+      "id": "G09",
+      "feature": "估值市值换手率",
+      "category": "p2_backend_and_client",
+      "source_coverage": "dated_valuation_responded_turnover_requires_source"
+    },
+    {
+      "id": "G10",
+      "feature": "连板梯队",
+      "category": "p2_backend_and_client",
+      "source_coverage": "provider_limit_up_pool_responded_rules_not_validated"
+    },
+    {
+      "id": "G11",
+      "feature": "国内模型分析",
+      "category": "p3_model_provider",
+      "source_coverage": "market_data_library_has_no_model_inference"
+    }
+  ],
+  "existing_backend_client_consumption_gaps": [
+    "/v1/us/sectors",
+    "/v1/cn/lhb pagination and seats"
+  ],
+  "detail_document": "CLIENT-INTEGRATION-20261015.md",
+  "source_evidence": "CLIENT-SOURCE-EVIDENCE-20261015.json"
+}

@@ -1,8 +1,10 @@
-# 个人收盘数据 API · v0.4.1
+# 个人收盘数据 API · v0.4.2
+
+**客户端最新对接（2026-10-15）：** 已拉取 GprojectApp `d447380`，API v0.4.2 已上线，客户端实际公网解析及 Android 构建通过。5 只配置股已取得 10 月 15 日行情/主力资金及最近 250 个交易日历史；本日完整池仍有 104 个日线序列待补齐，自动采集与补采继续暂停。9 类客户端路径的落实结果、11 项剩余缺口及 AKShare 实测来源见 [客户端对接与来源核验](docs/CLIENT-INTEGRATION-20261015.md)。
 
 源码仓库：[whath/GprojectBack](https://github.com/whath/GprojectBack)。更换开发电脑或云服务器前，请按 [迁移说明](docs/MIGRATION.md) 迁移配置、数据和调度；GitHub 不包含令牌、私钥及数据库。
 
-**2026-10-15 现网状态：** [HTTPS 健康入口](https://ericcself.top/healthz) 已通过桌面及用户手机蜂窝网络验证，API v0.4.1 已部署；接口开发使用 [客户端契约](docs/CLIENT-CONTRACT-v0.4.1.md)、[OpenAPI](docs/openapi.json) 和 [Python/JavaScript 示例](examples/)。[逐步执行记录](docs/RELEASE-EXECUTION-20261015.md) 包含部署、数据对账与恢复证据。
+**同日较早发布记录：** [HTTPS 健康入口](https://ericcself.top/healthz) 已通过桌面及用户手机蜂窝网络验证，v0.4.1 的 [逐步执行记录](docs/RELEASE-EXECUTION-20261015.md) 保留当时部署与恢复证据。当前接口开发使用 [客户端契约](docs/CLIENT-CONTRACT-v0.4.1.md)、[最新 OpenAPI](docs/openapi.json) 和 [Python/JavaScript 示例](examples/)。
 
 验收交易日为 2026-10-14：国内 5 只个股、2 只 ETF、90 个行业、15 个概念及美股 24 个配置标的通过来源 → 数据库 → 公网 API 对账。**巡检、定时采集、自动补采及电脑自动备份仍暂停，后续数据不会自行更新。** 证书自动续期已启用；没有将全目录或全市场历史标记为完成。
 

@@ -1,10 +1,12 @@
 # 手机与桌面 API 联调契约（v0.4.1）
 
+**2026-10-15 v0.4.2 兼容更新：** 路径和原有字段保持兼容；`/v1/capabilities` 新增 `data_availability`，用于区别实现能力、配置范围、当日覆盖与源时效。已实现的个股资金和新闻尚未采集时返回 503，完整 THS 成员及逐日 THS 板块资金缺乏合格来源时仍为 501。新版本与客户端的真实联调、数据日期和剩余边界见 [本轮落实记录](CLIENT-INTEGRATION-20261015.md)。
+
 入口为 `https://ericcself.top`，业务请求使用 `Authorization: Bearer <token>`。令牌通过本机私有配置或平台安全存储提供，不嵌入公开源码、URL 或日志。当前服务个人使用，不存在账户注册、多用户权限或自动交易功能。
 
 | 使用场景 | 路径 | 客户端应处理的字段/边界 |
 | --- | --- | --- |
-| 能力与运行版本 | `/v1/capabilities`、`/v1/deployment-status` | 是否实现、实际来源、云端版本；不能仅依据客户端版本判断可用性 |
+| 能力与运行版本 | `/v1/capabilities`、`/v1/deployment-status` | 是否实现、实际来源、云端版本、data_availability 配置池覆盖与时效；不能仅依据客户端版本判断可用性 |
 | 目录与搜索 | `/v1/instruments` | `total/items/snapshot_id`，支持 `market/kind/search/limit/offset` |
 | K 线 | `/v1/bars/{instrument_id}` | `items` 日期升序；显式 `start/end/limit`，区分不复权价格、成交量单位和历史缺失 |
 | 完整性 | `/v1/coverage`、`/v1/cn/history-coverage` | 配置池、全目录历史初始化分别统计；sample 不等于全市场 |
@@ -24,7 +26,7 @@
 | 422 | 参数错误，修正参数后再请求 |
 | 429 | 请求限流；退避后重试，勿立即并发重发 |
 | 501 | 当前能力或经核验数据源不可用；展示原因 |
-| 503 | 采集失败、库存数据校验失败或数据库忙；有 Retry-After 时按其等待 |
+| 503 | 已实现但尚未采集、采集失败、库存数据校验失败或数据库忙；有 Retry-After 时按其等待 |
 
 目录及成员分页从第一页取得 `snapshot_id`，后续页携带同一标识及完全一致的查询条件；30 分钟无活动后超期。全目录快照接口目前不提供该租约，宜查询已经完成并稳定的明确交易日，检查每页 total 和重复代码。
 

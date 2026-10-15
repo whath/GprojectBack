@@ -1,0 +1,360 @@
+{
+  "checked_on": "2026-10-15",
+  "server_region": "cn-beijing",
+  "akshare_version": "1.19.1",
+  "client_baseline_commit": "d4473803200076999bee90f9926c83ae702a09ee",
+  "backend_application_commit": "908e095998c0a743ddf5a1ed9a95088e50ed8a4b",
+  "membership_functions": {
+    "stock_board_cons_ths": false,
+    "stock_board_industry_cons_ths": false,
+    "stock_board_concept_cons_ths": false
+  },
+  "probes": [
+    {
+      "endpoint": "stock_fund_flow_industry",
+      "kwargs": {
+        "symbol": "即时"
+      },
+      "status": "response",
+      "count": 90,
+      "fields": [
+        "公司家数",
+        "净额",
+        "序号",
+        "当前价",
+        "流入资金",
+        "流出资金",
+        "行业",
+        "行业-涨跌幅",
+        "行业指数",
+        "领涨股",
+        "领涨股-涨跌幅"
+      ],
+      "error": null,
+      "latest_date": null,
+      "phase": "client-source-audit-20261015",
+      "transport": "requests"
+    },
+    {
+      "endpoint": "stock_individual_fund_flow",
+      "kwargs": {
+        "stock": "000001",
+        "market": "sz"
+      },
+      "status": "response",
+      "count": 121,
+      "fields": [
+        "中单净流入-净占比",
+        "中单净流入-净额",
+        "主力净流入-净占比",
+        "主力净流入-净额",
+        "大单净流入-净占比",
+        "大单净流入-净额",
+        "小单净流入-净占比",
+        "小单净流入-净额",
+        "收盘价",
+        "日期",
+        "涨跌幅",
+        "超大单净流入-净占比",
+        "超大单净流入-净额"
+      ],
+      "error": null,
+      "latest_date": "2026-10-15",
+      "phase": "client-source-audit-20261015",
+      "transport": "curl_cffi"
+    },
+    {
+      "endpoint": "stock_news_em",
+      "kwargs": {
+        "symbol": "美国"
+      },
+      "status": "response",
+      "count": 10,
+      "fields": [
+        "关键词",
+        "发布时间",
+        "文章来源",
+        "新闻内容",
+        "新闻标题",
+        "新闻链接"
+      ],
+      "error": null,
+      "latest_date": "2026-10-15",
+      "phase": "client-source-audit-20261015",
+      "transport": "requests"
+    },
+    {
+      "endpoint": "news_economic_baidu",
+      "kwargs": {
+        "date": "20261015"
+      },
+      "status": "failed",
+      "count": 0,
+      "fields": [],
+      "error": "HTTPError",
+      "latest_date": null,
+      "phase": "client-source-audit-20261015",
+      "transport": "requests"
+    },
+    {
+      "endpoint": "stock_zh_index_daily",
+      "kwargs": {
+        "symbol": "sh000001"
+      },
+      "status": "response",
+      "count": 8742,
+      "fields": [
+        "close",
+        "date",
+        "high",
+        "low",
+        "open",
+        "volume"
+      ],
+      "error": null,
+      "latest_date": "2026-10-15",
+      "phase": "client-source-audit-20261015",
+      "transport": "requests"
+    },
+    {
+      "endpoint": "index_global_hist_em",
+      "kwargs": {
+        "symbol": "日经225"
+      },
+      "status": "response",
+      "count": 9695,
+      "fields": [
+        "今开",
+        "代码",
+        "名称",
+        "振幅",
+        "日期",
+        "最低",
+        "最新价",
+        "最高"
+      ],
+      "error": null,
+      "latest_date": "2026-10-15",
+      "phase": "client-source-audit-20261015",
+      "transport": "requests"
+    },
+    {
+      "endpoint": "index_global_hist_em",
+      "kwargs": {
+        "symbol": "韩国KOSPI"
+      },
+      "status": "response",
+      "count": 12426,
+      "fields": [
+        "今开",
+        "代码",
+        "名称",
+        "振幅",
+        "日期",
+        "最低",
+        "最新价",
+        "最高"
+      ],
+      "error": null,
+      "latest_date": "2026-10-15",
+      "phase": "client-source-audit-20261015",
+      "transport": "requests"
+    },
+    {
+      "endpoint": "futures_global_spot_em",
+      "kwargs": {},
+      "status": "response",
+      "count": 620,
+      "fields": [
+        "买盘",
+        "今开",
+        "代码",
+        "卖盘",
+        "名称",
+        "序号",
+        "成交量",
+        "持仓量",
+        "昨结",
+        "最低",
+        "最新价",
+        "最高",
+        "涨跌幅",
+        "涨跌额"
+      ],
+      "error": null,
+      "latest_date": null,
+      "phase": "client-source-audit-20261015",
+      "transport": "requests"
+    },
+    {
+      "endpoint": "stock_zh_a_hist_min_em",
+      "kwargs": {
+        "symbol": "000001",
+        "period": "1",
+        "adjust": "",
+        "start_date": "2026-10-14 09:00:00",
+        "end_date": "2026-10-14 15:30:00"
+      },
+      "status": "failed",
+      "count": 0,
+      "fields": [],
+      "error": "ConnectionError",
+      "latest_date": null,
+      "phase": "client-source-audit-20261015",
+      "transport": "requests"
+    },
+    {
+      "endpoint": "stock_individual_info_em",
+      "kwargs": {
+        "symbol": "000001"
+      },
+      "status": "failed",
+      "count": 0,
+      "fields": [],
+      "error": "ConnectionError",
+      "latest_date": null,
+      "phase": "client-source-audit-20261015",
+      "transport": "requests"
+    },
+    {
+      "endpoint": "stock_zt_pool_em",
+      "kwargs": {
+        "date": "20261014"
+      },
+      "status": "response",
+      "count": 36,
+      "fields": [
+        "代码",
+        "名称",
+        "封板资金",
+        "序号",
+        "总市值",
+        "成交额",
+        "所属行业",
+        "换手率",
+        "最后封板时间",
+        "最新价",
+        "流通市值",
+        "涨停统计",
+        "涨跌幅",
+        "炸板次数",
+        "连板数",
+        "首次封板时间"
+      ],
+      "error": null,
+      "latest_date": null,
+      "phase": "client-source-audit-20261015",
+      "transport": "requests"
+    },
+    {
+      "endpoint": "news_economic_baidu",
+      "kwargs": {
+        "date": "20261015"
+      },
+      "transport": "curl_cffi",
+      "status": "failed",
+      "count": 0,
+      "fields": [],
+      "error": "HTTPError",
+      "latest_date": null,
+      "phase": "client-source-curl-20261015"
+    },
+    {
+      "endpoint": "stock_zh_a_hist_min_em",
+      "kwargs": {
+        "symbol": "000001",
+        "period": "1",
+        "adjust": "",
+        "start_date": "2026-10-14 09:00:00",
+        "end_date": "2026-10-14 15:30:00"
+      },
+      "transport": "curl_cffi",
+      "status": "response",
+      "count": 241,
+      "fields": [
+        "均价",
+        "开盘",
+        "成交量",
+        "成交额",
+        "收盘",
+        "时间",
+        "最低",
+        "最高"
+      ],
+      "error": null,
+      "latest_date": "2026-10-14",
+      "phase": "client-source-curl-20261015"
+    },
+    {
+      "endpoint": "stock_individual_info_em",
+      "kwargs": {
+        "symbol": "000001"
+      },
+      "transport": "curl_cffi",
+      "status": "failed",
+      "count": 0,
+      "fields": [],
+      "error": "ConnectionError",
+      "latest_date": null,
+      "phase": "client-source-curl-20261015"
+    },
+    {
+      "endpoint": "futures_global_hist_em",
+      "kwargs": {
+        "symbol": "GC00Y"
+      },
+      "transport": "requests",
+      "status": "failed",
+      "count": 0,
+      "fields": [],
+      "error": "ConnectionError",
+      "latest_date": null,
+      "phase": "client-source-futures-20261015"
+    },
+    {
+      "endpoint": "futures_global_hist_em",
+      "kwargs": {
+        "symbol": "GC00Y"
+      },
+      "transport": "curl_cffi",
+      "status": "failed",
+      "count": 0,
+      "fields": [],
+      "error": "ConnectionError",
+      "latest_date": null,
+      "phase": "client-source-futures-curl-20261015"
+    },
+    {
+      "endpoint": "stock_value_em",
+      "kwargs": {
+        "symbol": "000001"
+      },
+      "transport": "curl_cffi",
+      "status": "response",
+      "count": 2129,
+      "fields": [
+        "PE(TTM)",
+        "PE(静)",
+        "PEG值",
+        "市净率",
+        "市现率",
+        "市销率",
+        "当日收盘价",
+        "当日涨跌幅",
+        "总市值",
+        "总股本",
+        "数据日期",
+        "流通市值",
+        "流通股本"
+      ],
+      "error": null,
+      "latest_date": "2026-10-15",
+      "phase": "client-source-value-20261015"
+    }
+  ],
+  "probe_attempts": 17,
+  "response_attempts": 10,
+  "raw_data_in_git": false,
+  "limitation": "Nonempty source response does not prove complete client contract, production ingestion, historical continuity, quote finality, exchange rules or licensing.",
+  "client_delivery_commit": "fdcd8ff1694144c544841e0d2c9ef6fc0b97fb8a"
+}
