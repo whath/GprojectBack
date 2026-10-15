@@ -98,6 +98,11 @@ def init():
         CREATE TABLE IF NOT EXISTS feed_attempts(
           feed_key TEXT PRIMARY KEY,last_attempt TEXT NOT NULL,last_success TEXT,
           attempts INTEGER NOT NULL,status TEXT NOT NULL,message TEXT);
+        CREATE TABLE IF NOT EXISTS supplemental_feeds(
+          feed_key TEXT PRIMARY KEY,metadata TEXT NOT NULL,verified_at TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS supplemental_points(
+          feed_key TEXT NOT NULL REFERENCES supplemental_feeds(feed_key),point_key TEXT NOT NULL,
+          payload TEXT NOT NULL,observed_at TEXT NOT NULL,PRIMARY KEY(feed_key,point_key));
         ''')
         for table, columns in {
             "tasks": {"reason_code":"TEXT", "retryable":"INTEGER NOT NULL DEFAULT 1"},
@@ -110,6 +115,7 @@ def init():
         con.execute("INSERT OR IGNORE INTO schema_version VALUES(2)")
         con.execute("INSERT OR IGNORE INTO schema_version VALUES(3)")
         con.execute("INSERT OR IGNORE INTO schema_version VALUES(4)")
+        con.execute("INSERT OR IGNORE INTO schema_version VALUES(5)")
 
 
 def instrument(item):

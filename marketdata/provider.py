@@ -5,9 +5,12 @@ import subprocess
 import sys
 import tempfile
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 ALLOWED = {
+    "stock_zh_index_daily", "index_global_hist_em", "index_global_hist_sina", "stock_zh_a_hist_min_em",
+    "stock_value_em", "stock_zt_pool_em",
     "stock_info_sh_name_code", "stock_info_sz_name_code", "stock_info_bj_name_code",
     "stock_info_sh_delist", "stock_info_sz_delist",
     "stock_tfp_em", "news_economic_baidu",
@@ -86,7 +89,8 @@ class AKProvider:
                 request = Path(folder) / "request.json"
                 response = Path(folder) / "response.json"
                 request.write_text(json.dumps({"endpoint": endpoint, "kwargs": kwargs,
-                    "transport": self.config.get("akshare_transport", "requests")}), encoding="utf-8")
+                    "transport": self.config.get("akshare_transport", "requests"),
+                    "same_source_close_supplements": self.config.get("same_source_close_supplements",False)}), encoding="utf-8")
                 try:
                     environment = os.environ.copy()
                     if not self.config.get("use_system_proxy", True):
@@ -108,6 +112,12 @@ class AKProvider:
                         if "error" in result:
                             last_error = result["error"]
                         else:
+                            if self.config.get('raw_response_dir'):
+                                folder=Path(self.config['raw_response_dir'])
+                                folder.mkdir(parents=True,exist_ok=True)
+                                evidence=dict(endpoint=endpoint,kwargs=kwargs,observed_at=datetime.now(timezone.utc).isoformat(),
+                                              same_source_close_supplements=self.config.get('same_source_close_supplements',False),**result)
+                                (folder/f'{time.time_ns()}-{endpoint}.json').write_text(json.dumps(evidence,ensure_ascii=False,allow_nan=False),encoding='utf-8')
                             time.sleep(self.config["request_spacing_seconds"])
                             return result["rows"]
                 except subprocess.TimeoutExpired:
@@ -131,6 +141,7 @@ def child(request, response):
         requests.sessions.Session.__init__ = direct_init
     import akshare as ak
     args = json.loads(Path(request).read_text(encoding="utf-8"))
+    supplementary_evidence={}
     try:
         if args["endpoint"] not in ALLOWED:
             raise ValueError("endpoint is not allowed")
@@ -174,7 +185,22 @@ def child(request, response):
             frame = adapt_frame(args["endpoint"], frame, args["kwargs"])
             # pandas safely converts NaN/NaT/numpy values; no pickle across processes.
             rows = json.loads(frame.to_json(orient="records", date_format="iso", force_ascii=False))
-        result = {"rows": rows}
+            if args.get('same_source_close_supplements'):
+                # Explicit manual option: same publisher, dated close, verified overlap.
+                # These HTTP supplements are our adapters, not additional AKShare functions.
+                try:
+                    before_count=len(rows)
+                    if args['endpoint']=='fund_etf_hist_sina':
+                        from .sina_recent import supplement
+                        rows=supplement(args['kwargs']['symbol'],rows)
+                    elif args['endpoint'].endswith('_index_ths'):
+                        from .ths_recent import supplement
+                        rows=supplement(args['endpoint'],args['kwargs'],rows)
+                    supplementary_evidence=dict(status='validated_or_no_addition',archive_rows=before_count,added_rows=len(rows)-before_count)
+                except Exception as exc:
+                    # Keep independently valid archive rows; caller marks a missing target pending.
+                    supplementary_evidence=dict(status='not_applied',error=type(exc).__name__)
+        result = {"rows": rows, "supplementary_evidence":supplementary_evidence}
     except Exception as exc:
         # Avoid persisting upstream URLs or credentials in diagnostics.
         from .normalize import PendingData

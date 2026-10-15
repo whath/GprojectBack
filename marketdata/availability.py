@@ -50,7 +50,8 @@ def report(cfg, now=None):
             news['status'] = 'failed_or_invalid'
     configured = {'CN.stock.' + s for s in cfg['cn_stocks']}
     from .health import coverage
-    return dict(checked_at=now.isoformat(), markets={m: dict(calendar_target_date=targets[m],
+    from .supplements import readiness
+    return dict(checked_at=now.isoformat(), supplemental_feeds=readiness(), markets={m: dict(calendar_target_date=targets[m],
                 latest_stored_bar_date=latest.get(m), stale=latest.get(m) != targets[m],
                 scope='latest date among stored series; not whole-market completeness') for m in targets},
                 configured_coverage={m: coverage(m, targets[m], cfg) for m in targets},

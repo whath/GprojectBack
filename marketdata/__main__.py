@@ -21,11 +21,29 @@ def main():
     collect.add_argument("--date",type=date.fromisoformat)
     collect.add_argument("--sample",action="store_true")
     collect.add_argument("--refresh",action="store_true",help="also re-fetch successful history tasks")
+    collect.add_argument("--same-source-close",action="store_true",help="manually enable validated Sina/THS close supplements")
+    collect.add_argument("--raw-dir",type=Path)
     commands.add_parser("worker")
     funds=commands.add_parser("collect-funds")
     funds.add_argument("--date",type=date.fromisoformat)
     funds.add_argument("--symbol",action="append")
     commands.add_parser("collect-events")
+    supplemental=commands.add_parser("collect-supplemental")
+    supplemental.add_argument("--date",type=date.fromisoformat,required=True)
+    supplemental.add_argument("--feature",action="append",choices=['indices','minutes','valuation','limit-up'],required=True)
+    supplemental.add_argument("--symbol",action="append")
+    supplemental.add_argument("--raw-dir",type=Path)
+    scheduled=commands.add_parser("collect-scheduled-events")
+    scheduled.add_argument("--year",type=int,required=True)
+    scheduled.add_argument("--raw-dir",type=Path)
+    history=commands.add_parser("collect-history-batch")
+    history.add_argument("--date",type=date.fromisoformat,required=True)
+    history.add_argument("--window",type=int,choices=[250,500,1000,2000],default=250)
+    history.add_argument("--max-items",type=int,choices=range(1,501),metavar='1..500',default=100)
+    history.add_argument("--budget",type=int,choices=range(30,901),metavar='30..900',default=600)
+    history.add_argument("--kind",action='append',choices=['stock','etf'])
+    history.add_argument("--scope",choices=['configured','catalog'],default='configured')
+    history.add_argument("--raw-dir",type=Path)
     backup=commands.add_parser("backup")
     backup.add_argument("destination",type=Path)
     rebuild=commands.add_parser("rebuild-us-source")
@@ -35,7 +53,9 @@ def main():
     db.init()
     if args.command=="collect":
         day=args.date or latest_ready(args.market,config())
-        result=Collector(args.market,day,args.sample,refresh=args.refresh).run()
+        result=Collector(args.market,day,args.sample,refresh=args.refresh,
+                         settings=dict(config(),same_source_close_supplements=args.same_source_close,
+                                       raw_response_dir=str(args.raw_dir) if args.raw_dir else None)).run()
         if not args.sample:
             from .operations import refresh_alerts
             refresh_alerts(args.market,day.isoformat())
@@ -53,6 +73,22 @@ def main():
             row=con.execute("SELECT status,message FROM feed_snapshots WHERE feed_key='events'").fetchone()
         print(json.dumps(dict(row) if row else {"status":"not_configured"},ensure_ascii=False))
         raise SystemExit(0 if row and row["status"]=="complete" else 2)
+    elif args.command=="collect-supplemental":
+        from .supplements import run
+        result=run(config(),args.date,args.feature,args.symbol,args.raw_dir)
+        print(json.dumps(result,ensure_ascii=False))
+        raise SystemExit(0 if result['status']=='complete' else 2)
+    elif args.command=="collect-scheduled-events":
+        from .scheduled import collect
+        from .pipeline import CollectorLock
+        with CollectorLock():
+            result=collect(args.year,args.raw_dir)
+        print(json.dumps(result,ensure_ascii=False))
+    elif args.command=="collect-history-batch":
+        from .manual_history import run
+        result=run(config(),args.date,args.window,args.max_items,args.budget,args.kind or ('stock','etf'),args.scope,args.raw_dir)
+        print(json.dumps(result,ensure_ascii=False))
+        raise SystemExit(0 if result['status']=='complete' else 2)
     elif args.command=="backup":
         db.backup(args.destination)
         print("Backup integrity check: ok")

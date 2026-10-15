@@ -36,7 +36,7 @@ async def lifespan(app):
     yield
 
 
-app=FastAPI(title="Personal EOD Market API",version="0.4.2",lifespan=lifespan,
+app=FastAPI(title="Personal EOD Market API",version="0.5.0",lifespan=lifespan,
             description="收盘数据服务；CN 交易日北京时间 15:10、17:10、19:10 三轮采集；美股行业 ETF 代理排名和可编辑 AI 观察池。")
 
 if config().get("cors_origins"):
@@ -248,9 +248,16 @@ def records(dataset,day,symbol,limit,offset,connection=None):
 
 
 @app.get("/v1/cn/lhb",dependencies=[Depends(authorize)])
-def lhb(trade_date:date|None=None,symbol:str|None=Query(None,pattern=r"^\d{6}$"),
-        institutions:bool=False,limit:int=Query(100,ge=1,le=500),offset:int=Query(0,ge=0)):
-    return records("lhb_institutions" if institutions else "lhb",chosen_day("CN",trade_date),symbol,limit,offset)
+def lhb(request:Request,trade_date:date|None=None,symbol:str|None=Query(None,pattern=r"^\d{6}$"),
+        institutions:bool=False,limit:int=Query(100,ge=1,le=500),offset:int=Query(0,ge=0),
+        refresh:bool=False,snapshot_id:str|None=Query(None,pattern=r"^[a-f0-9]{64}$")):
+    day=chosen_day('CN',trade_date)
+    dataset='lhb_institutions' if institutions else 'lhb'
+    def load(con):
+        payload=records(dataset,day,symbol,-1,0,connection=con)
+        return dict(payload,total=len(payload['items']))
+    return snapshot_page(['lhb',dataset,day,symbol],offset,limit,load,
+                         request.headers.get('authorization',''),refresh,snapshot_id)
 
 
 @app.get("/v1/cn/lhb/{symbol}/seats",dependencies=[Depends(authorize)])
@@ -345,9 +352,55 @@ def capabilities():
                            "historical_limit":"provider recent window (documented ~100; 120 observed); stored history accumulates"},
             "ths_members":{"implemented":False,"reason":"no verified complete function in pinned AKShare"},
             "ths_board_funds":{"implemented":False,"reason":"public industry table lacks dated daily history and required amount precision"},
-            "events":{"news":True,"scheduled_calendar":False,"coverage":"configured keyword search only",
+            "events":{"news":True,"scheduled_calendar":True,"scheduled_coverage":"official FOMC meetings; date precision only",
+                      "scheduled_endpoint":"/v1/scheduled-events","coverage":"configured keyword search only",
                       "economic_facts":True,"economic_endpoint":"/v1/economic-calendar"},
+            "supplemental":{"indices":"/v1/indices", "index_bars":"/v1/indices/{instrument_id}/bars",
+                            "minutes":"/v1/cn/stocks/{instrument_id}/minutes",
+                            "valuation":"/v1/cn/stocks/{instrument_id}/metrics",
+                            "limit_up":"/v1/cn/limit-up-ladder",
+                            "collection":"manual only; account-free AKShare sources",
+                            "limit_up_basis":"provider reported; independent rules not certified"},
             "data_availability":availability_report(config())}
+
+
+@app.get("/v1/indices",dependencies=[Depends(authorize)])
+def reference_indices():
+    from .supplements import indices_report
+    return indices_report()
+
+
+@app.get("/v1/indices/{instrument_id}/bars",dependencies=[Depends(authorize)])
+def reference_index_bars(instrument_id:str,start:date|None=None,end:date|None=None,
+                         limit:int=Query(500,ge=1,le=2000)):
+    if start and end and start>end:
+        raise HTTPException(422,"start must not exceed end")
+    from .supplements import index_report
+    return index_report(instrument_id,start,end,limit)
+
+
+@app.get("/v1/cn/stocks/{instrument_id}/minutes",dependencies=[Depends(authorize)])
+def stock_minutes(instrument_id:str,trade_date:date):
+    from .supplements import minutes_report
+    return minutes_report(instrument_id,trade_date)
+
+
+@app.get("/v1/cn/stocks/{instrument_id}/metrics",dependencies=[Depends(authorize)])
+def stock_metrics(instrument_id:str,end:date|None=None,limit:int=Query(1,ge=1,le=2000)):
+    from .supplements import valuation_report
+    return valuation_report(instrument_id,end,limit)
+
+
+@app.get("/v1/cn/limit-up-ladder",dependencies=[Depends(authorize)])
+def limit_up_ladder(trade_date:date|None=None):
+    from .supplements import pool_report
+    return pool_report(date.fromisoformat(chosen_day('CN',trade_date)))
+
+
+@app.get("/v1/scheduled-events",dependencies=[Depends(authorize)])
+def scheduled_events(start:date,end:date,limit:int=Query(100,ge=1,le=100),include_removed:bool=False):
+    from .scheduled import report
+    return report(start,end,limit,include_removed)
 
 
 @app.get("/v1/catalog-coverage",dependencies=[Depends(authorize)])
