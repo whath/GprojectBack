@@ -1,8 +1,8 @@
-# 个人收盘数据 API · v0.6.3
+# 个人收盘数据 API · v0.6.4
 
 提供全 A 股近 **52 周日线**及兼容的近 **30 个本地市场交易日**查询，服务于个人手机和 Windows 客户端。正式 HTTPS：`https://ericcself.top`；数据接口使用 Bearer Token，`/healthz` 仅表示存活，`/readyz` 表示服务就绪。
 
-2026-10-16 已上线 7 日榜（个股前 50、ETF 前 10）、22 个指定方向、分级原文资讯及 A 股收盘分时快照。后端 195 项测试、客户端 93 项真实 HTTPS 测试通过；公网 27 项及 9 次并发请求通过。当前契约见 [v0.6.3](docs/SEVEN-DAY-v0.6.3.md)，验收与剩余缺口见 [交付记录](docs/SEVEN-DAY-ACCEPTANCE-20261016.md)，52 周基础见 [52 周契约](docs/HISTORY-52W-v0.6.1.md)。客户端：[GprojectApp](https://github.com/whath/GprojectApp)。
+2026-10-16 已上线中美重要会议与数据公布日程、经济日历高重要性过滤、独立自选收盘报价；客户端增加价格轴、成交量及 MA/MACD/KDJ/RSI/BOLL 和所选日形态解释。后端204项回归、客户端105项测试（含正式HTTPS、手机/桌面渲染）通过；公网21项及9次并发请求通过，荣耀ALI-AN00真机已验收。当前新增契约见 [v0.6.4](docs/CALENDAR-STUDIES-v0.6.4.md)，验收和来源边界见 [交付记录](docs/CALENDAR-STUDIES-ACCEPTANCE-20261016.md)；原榜单/22方向/资讯/分时见 [v0.6.3](docs/SEVEN-DAY-v0.6.3.md)。客户端：[GprojectApp](https://github.com/whath/GprojectApp)。
 
 **定时采集、自动补采、巡检和电脑自动备份继续关闭。** 本轮仅执行有限手工采集和一次一致性备份。已有历史存档保留，API 不再排队扩大历史范围；证书自动续期保持启用。
 
@@ -12,6 +12,8 @@
 - 22 个指定方向：行业、概念分开；20 个东方财富方向提供行情、资金和当前成分；同花顺独立提供 AIDC、算力租赁行情，缺少同口径资金时不显示资金。稳定币暂不展示。
 - 美股：11 个标普行业 ETF 代理、12 个 AI 配置标的及 SPY，共 24 个序列；行业代理不等于全美细分行业。
 - 宏观：新浪 XAU 美元日度参考、EIA 布伦特现货、美财政部 2/10/30 年期平价收益率。
+- 中美重要会议和数据公布日程：国家统计局、BEA、美联储、已核验中国会议公告；BLS直连受限，有限窗口用明确标注的高重要性经济日历补充，不保证穷尽。经济日历仅默认保留来源评级3—4级。
+- 自选独立查询已存收盘价、实际日期、币种及日涨跌，不依赖涨幅榜；GET不触发采集。
 - 华尔街见闻经济日历；中央/国家部委政策；美国财政部、美联储；高盛、摩根士丹利公开投研；英伟达官方新闻及博客，均限制原发布方与发布日期。
 - 已移除连板接口和采集选项；客户端已去掉连板、信号雷达、模型分析及无界历史扩容入口。
 
@@ -42,7 +44,7 @@ $env:API_TOKEN = & ./.venv/Scripts/python.exe -c 'import secrets; print(secrets.
 # 前复权抓取单次完整快照，用于近 7 日榜；不会与不复权图表混用。
 ./.venv/Scripts/python.exe -m marketdata collect-context --feature gainers --scope available --max-items 120 --date 2026-10-15 --raw-dir data/raw-gainers
 ./.venv/Scripts/python.exe -m marketdata collect-context --feature boards --max-items 80 --date 2026-10-15 --raw-dir data/raw-boards
-./.venv/Scripts/python.exe -m marketdata collect-context --feature macro --feature calendar --feature policy --raw-dir data/raw-context
+./.venv/Scripts/python.exe -m marketdata collect-context --feature macro --feature calendar --feature important-calendar --feature policy --raw-dir data/raw-context
 # 分级资讯先刷新国家部委列表，再采集美国原发布方。
 ./.venv/Scripts/python.exe -m marketdata collect-context --feature priority-news --raw-dir data/raw-priority
 ```
@@ -61,4 +63,4 @@ $env:API_TOKEN = & ./.venv/Scripts/python.exe -c 'import secrets; print(secrets.
 
 ETF 全目录、22 个方向、分钟快照的有限采集命令见 [v0.6.3 契约](docs/SEVEN-DAY-v0.6.3.md)。分页计算使用一致的只读事务，发布缓存时才短暂持有写锁，避免并发榜单互相阻塞。
 
-更换电脑或服务器时，请按 [迁移说明](docs/MIGRATION.md) 搬迁数据库、配置和密钥。Git 仅包含代码、测试和无敏感信息的验收记录，不含行情库、私钥或生产令牌。较早交付文档均为历史快照，本版本范围以本页和 v0.6.3 契约为准。
+更换电脑或服务器时，请按 [迁移说明](docs/MIGRATION.md) 搬迁数据库、配置和密钥。Git 仅包含代码、测试和无敏感信息的验收记录，不含行情库、私钥或生产令牌。较早交付文档均为历史快照，本版本范围以本页及 v0.6.4 / v0.6.3 契约为准。

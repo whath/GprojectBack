@@ -7,7 +7,7 @@ from .public_feeds import PublicSource
 
 
 def run(cfg, features, day=None, max_items=10, scope='configured', all_boards=False, raw_dir=None):
-    from . import macro_assets, calendar_feed, policy_news, board_data, gainers
+    from . import macro_assets, calendar_feed, policy_news, board_data, gainers, important_calendar
     cfg=dict(cfg,raw_response_dir=str(raw_dir) if raw_dir else None)
     day=day or latest_ready('CN',cfg)
     source=PublicSource(raw_dir)
@@ -15,6 +15,7 @@ def run(cfg, features, day=None, max_items=10, scope='configured', all_boards=Fa
     with CollectorLock():
         if 'macro' in features:results.extend(macro_assets.collect(source))
         if 'calendar' in features:results.append(calendar_feed.collect(source,cfg))
+        if 'important-calendar' in features:results.extend(important_calendar.collect(source,cfg))
         if 'policy' in features:results.extend(policy_news.collect(source,cfg))
         if 'priority-news' in features:
             from . import priority_news

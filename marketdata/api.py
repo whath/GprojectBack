@@ -36,7 +36,7 @@ async def lifespan(app):
     yield
 
 
-app=FastAPI(title="Personal EOD Market API",version="0.6.3",lifespan=lifespan,
+app=FastAPI(title="Personal EOD Market API",version="0.6.4",lifespan=lifespan,
             description="个人收盘数据：A股52周日线、收盘分时快照；7日涨幅、22个关注方向、板块资金、龙虎榜、美股观察、日度宏观、分级资讯。兼容5日旧请求。自动采集默认关闭。")
 
 if config().get("cors_origins"):
@@ -372,13 +372,14 @@ def events(limit:int=Query(100,ge=1,le=100)):
 
 @app.get("/v1/economic-calendar",dependencies=[Depends(authorize)])
 def economic_calendar(trade_date:date|None=None,start:date|None=None,end:date|None=None,
-                      region:str|None=Query(None,pattern=r'^[A-Z]{2}$'),limit:int=Query(500,ge=1,le=2000),offset:int=Query(0,ge=0)):
+                      region:str|None=Query(None,pattern=r'^[A-Z]{2}$'),min_importance:int=Query(3,ge=0,le=4),
+                      limit:int=Query(500,ge=1,le=2000),offset:int=Query(0,ge=0)):
     from .calendar_feed import report
     from .calendars import CN
     from datetime import datetime
     first=trade_date or start or datetime.now(CN).date()
     last=trade_date or end or first+timedelta(days=7)
-    data=report(first,last,region)
+    data=report(first,last,region,min_importance)
     return dict(data,items=data['items'][offset:offset+limit])
 
 
@@ -386,7 +387,7 @@ def economic_calendar(trade_date:date|None=None,start:date|None=None,end:date|No
 def capabilities():
     from importlib.metadata import version
     from .availability import report as availability_report
-    return {"provider":"mixed_public_sources","version":"0.6.3","akshare_version":version("akshare"),
+    return {"provider":"mixed_public_sources","version":"0.6.4","akshare_version":version("akshare"),
             "stock_funds":{"implemented":True,"source":"stock_individual_fund_flow",
                            "transport":config().get("funds_transport","curl_cffi"),
                            "historical_limit":"provider recent window (documented ~100; 120 observed); stored history accumulates"},
@@ -397,6 +398,8 @@ def capabilities():
             "focused_topics":{"implemented":True,"count":22,"endpoint":"/v1/focus-boards"},
             "intraday_snapshots":{"implemented":True,"mode":"stored closed-session observations","endpoint":"/v1/intraday/{instrument_id}"},
             "priority_news":{"implemented":True,"endpoint":"/v1/priority-news","policy":"exact original issuer allowlist"},
+            "important_calendar":{"implemented":True,"endpoint":"/v1/important-calendar","dates":"announced only; source status supplied; coverage not exhaustive"},
+            "watch_quotes":{"implemented":True,"endpoint":"/v1/watch-quotes","price_type":"stored_daily_close","max_ids":100},
             "events":{"news":True,"scheduled_calendar":True,"scheduled_coverage":"official FOMC meetings; date precision only",
                       "scheduled_endpoint":"/v1/scheduled-events","coverage":"configured keyword search only",
                       "economic_facts":True,"economic_source":"wallstreetcn","economic_endpoint":"/v1/economic-calendar"},
@@ -509,6 +512,19 @@ def fund_rankings(request:Request,kind:Literal['industry','concept']='industry',
 def scheduled_events(start:date,end:date,limit:int=Query(100,ge=1,le=100),include_removed:bool=False):
     from .scheduled import report
     return report(start,end,limit,include_removed)
+
+
+@app.get('/v1/important-calendar',dependencies=[Depends(authorize)])
+def important_calendar(start:date,end:date,country:Literal['CN','US']|None=None,
+                       category:Literal['meeting','release']|None=None,limit:int=Query(500,ge=1,le=1000)):
+    from .important_calendar import report
+    return report(start,end,country,category,limit)
+
+
+@app.get('/v1/watch-quotes',dependencies=[Depends(authorize)])
+def watch_quotes(ids:str=Query(...,min_length=1,max_length=8000),cn_date:date|None=None,us_date:date|None=None):
+    from .watch_quotes import report
+    return report(ids.split(','),config(),cn_date,us_date)
 
 
 @app.get("/v1/catalog-coverage",dependencies=[Depends(authorize)])

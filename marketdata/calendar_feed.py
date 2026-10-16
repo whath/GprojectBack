@@ -74,7 +74,7 @@ def normalize(payload, start, end):
 def collect(source, cfg, *, now=None):
     now = now or datetime.now(timezone.utc)
     start = window_start('CN', latest_ready('CN',cfg,now), cfg)
-    end = now.astimezone(CN).date()+timedelta(days=7)
+    end = now.astimezone(CN).date()+timedelta(days=30)
     try:
         # The public service rejects a long single range. Use bounded weekly
         # windows; UTC epochs avoid the SDK's dependence on the host timezone.
@@ -104,7 +104,7 @@ def collect(source, cfg, *, now=None):
         return dict(feature='economic_calendar',status='failed',error=type(exc).__name__,message=str(exc)[:180])
 
 
-def report(start, end, region=None):
+def report(start, end, region=None, min_importance=3):
     if start>end or (end-start).days>90:
         raise HTTPException(422,'calendar range must be ordered and within 90 days')
     payload = load('calendar:wscn')
@@ -116,9 +116,9 @@ def report(start, end, region=None):
             stamp = datetime.fromisoformat(row['occurs_at'])
             if stamp.tzinfo is None or row['source'] != SOURCE or row['published_at'] is not None:
                 raise ValueError('invalid stored calendar provenance')
-            if start.isoformat() <= row['local_date'] <= end.isoformat() and (not region or row['country_code']==region):
+            if start.isoformat() <= row['local_date'] <= end.isoformat() and (not region or row['country_code']==region) and row['importance'] >= min_importance:
                 items.append(row)
     except (KeyError, ValueError, TypeError):
         raise HTTPException(503,'stored calendar failed validation') from None
-    return dict(payload, items=items, total=len(items), requested_start=str(start), requested_end=str(end),
+    return dict(payload, items=items, total=len(items), min_importance=min_importance, requested_start=str(start), requested_end=str(end),
                 window_covered=payload['start_date']<=str(start) and payload['end_date']>=str(end))

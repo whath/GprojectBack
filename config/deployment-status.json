@@ -14,18 +14,18 @@
     "dns_a_record": "39.96.22.254",
     "tls_certificate_expires": "2026-12-29",
     "certificate_renewal_dry_run": "passed",
-    "desktop_https": "27_checks_and_9_concurrent_requests_passed",
+    "desktop_https": "21_checks_and_9_concurrent_requests_passed",
     "mobile_cellular_https": "previous_user_confirmation_2026-10-15; cellular_not_retested_for_0.6.3",
     "http_redirect_status": 301,
     "unauthorized_status": 401,
     "public_docs_status": 404,
-    "mobile_android_https": "0.6.3_real_device_verified"
+    "mobile_android_https": "0.6.4_real_device_verified"
   },
   "server_changes_performed": true,
   "runtime": {
     "checked_on": "2026-10-16",
-    "server_api_version": "0.6.3",
-    "local_api_version": "0.6.3",
+    "server_api_version": "0.6.4",
+    "local_api_version": "0.6.4",
     "history_sessions": 30,
     "worker": "inactive_disabled_by_user",
     "automatic_monitoring": "paused_by_user",
@@ -40,30 +40,37 @@
     },
     "cn_all_stocks": true,
     "stock_history_weeks": 52,
-    "api_last_acceptance": "SEVEN-DAY-ACCEPTANCE-20261016"
+    "api_last_acceptance": "CALENDAR-STUDIES-ACCEPTANCE-20261016"
   },
   "client_integration": {
     "checked_on": "2026-10-16",
-    "business_version": "0.6.3",
-    "desktop_package_version": "1.6.3",
-    "client_tests": 93,
+    "business_version": "0.6.4",
+    "desktop_package_version": "1.6.4",
+    "client_tests": 105,
     "failures": 0,
     "skipped": 0,
     "real_https_repository_and_rendering": "passed",
     "android_build": "passed",
     "windows_portable_build": "passed",
-    "android_device_install": "0.6.3_ALI-AN00_Android13_verified",
+    "android_device_install": "Honor ALI-AN00 Android13 versionCode6 verified",
     "mobile_render_dimensions": "390x844",
     "desktop_render_dimensions": "1240x900",
-    "backend_tests": 195,
-    "public_api_checks": 27,
+    "backend_tests": 204,
+    "public_api_checks": 21,
     "concurrent_api_checks": 9,
     "real_device_chart": {
+      "status": "passed",
+      "version": "0.6.4",
+      "versionCode": 6,
+      "stock": "CN.stock.000001",
       "daily_bars": 241,
       "zoomed_bars": 172,
       "minute_points": 242,
-      "trade_date": "2026-10-15"
-    }
+      "selected_date_sync": "2026-06-01",
+      "watch_price_matches_api": true,
+      "watch_preferences_restored": true
+    },
+    "calendar_watch_studies": "important meetings/releases, high-importance economics, independent watch price, axis/volume/MA/MACD/KDJ/RSI/BOLL verified"
   },
   "coverage": {
     "date": "2026-10-15",
@@ -131,23 +138,26 @@
       "rows": 82,
       "refreshed_on": "2026-10-16"
     },
-    "current_scope_reference": "docs/SEVEN-DAY-ACCEPTANCE-20261016.md",
+    "current_scope_reference": "docs/CALENDAR-STUDIES-ACCEPTANCE-20261016.md",
     "active_cn_etf_scope": "all_current_listed_domestic_etfs",
     "active_cn_etf_catalog": 1702,
-    "active_board_scope": "22_focused_publisher_specific_topics"
+    "active_board_scope": "22_focused_publisher_specific_topics",
+    "important_calendar": {
+      "window_start": "2026-10-16",
+      "window_end": "2027-01-14",
+      "events": 23,
+      "official_feeds_current": [
+        "nbs",
+        "bea",
+        "fed",
+        "cn-meetings"
+      ],
+      "bls": "anonymous_HTTP403; high-importance WSCN limited-window fallback",
+      "exhaustive": false
+    }
   },
   "acceptance": {
-    "raw_to_production": {
-      "status": "passed",
-      "counts": {
-        "raw_rows": 1297682,
-        "raw_fields": 10381456,
-        "qfq_closes": 1320818,
-        "evidence_files": 11008,
-        "sha256_verified": 11008
-      },
-      "basis": "per-instrument bounded memory verification of retained adapter responses, hashes, stored raw fields and same-fetch adjusted closes"
-    },
+    "raw_to_production": "verified with real schedules and stored quotes; source-specific BLS unavailability retained",
     "pc_backup_restore": {
       "restore_verified": true,
       "sha256": "073648fe254801b0d2581ea65df09a439a10c487d54c1b440285b0c64c99c350",
@@ -164,16 +174,19 @@
       "pc_restore": "passed"
     },
     "artifacts": {
-      "Gproject-Android-v0.6.1.apk": {
-        "bytes": 18943950,
-        "sha256": "ba371747de085c080ef5212e68d7393ffe651d597a6fcd9b7fbe7e0c42fa1647"
-      },
-      "Gproject-Windows-v0.6.1.zip": {
-        "bytes": 96705546,
-        "sha256": "ae647f170c94836501893b284049a7d8eabf8993ab769799e243958895497ff0"
+      "credential_scan": "passed",
+      "artifacts": {
+        "Gproject-Android-v0.6.4.apk": {
+          "bytes": 19775006,
+          "sha256": "c69e8519ff72965d063e95f459e7f3d0d3b5722c7c9d6a53ea4a2526bf25cdb4"
+        },
+        "Gproject-Windows-v0.6.4.zip": {
+          "bytes": 96851347,
+          "sha256": "419f3441739985588c8b35ed630e3f3d0888d099a5382b4fe6521e347f8007c0"
+        }
       }
     },
-    "details": "docs/HISTORY-52W-ACCEPTANCE-20261016.md",
+    "details": "docs/CALENDAR-STUDIES-ACCEPTANCE-20261016.md",
     "all_a_expansion": {
       "status": "accepted",
       "details": "docs/FULL-A-ACCEPTANCE-20261016.md",
@@ -353,7 +366,10 @@
     "EM board levels differ from THS classifications",
     "gold is Sina XAU CFD reference; no LBMA or official settlement assertion",
     "policy source lists are not exhaustive archives",
-    "public source availability has no long-term SLA"
+    "public source availability has no long-term SLA",
+    "BLS anonymous schedule requests return HTTP403; official feed unavailable, limited-window high-importance WSCN fallback explicitly labelled",
+    "Important meetings only where explicit official dates were obtained; discovery is bounded and not exhaustive",
+    "Chart studies use unadjusted stored daily bars; corporate actions, missing sessions and finite warm-up affect comparability"
   ],
   "manual_backup_063": {
     "status": "passed",
@@ -402,6 +418,241 @@
       "official_policy_source_observations": 89,
       "current_policy_items": 45,
       "current_membership_rows": 7398
+    },
+    "0.6.3_2026-10-16": {
+      "client_integration": {
+        "checked_on": "2026-10-16",
+        "business_version": "0.6.4",
+        "desktop_package_version": "1.6.4",
+        "client_tests": 105,
+        "failures": 0,
+        "skipped": 0,
+        "real_https_repository_and_rendering": "passed",
+        "android_build": "passed",
+        "windows_portable_build": "passed",
+        "android_device_install": "Honor ALI-AN00 Android13 versionCode6 verified",
+        "mobile_render_dimensions": "390x844",
+        "desktop_render_dimensions": "1240x900",
+        "backend_tests": 204,
+        "public_api_checks": 21,
+        "concurrent_api_checks": 9,
+        "real_device_chart": {
+          "status": "passed",
+          "version": "0.6.4",
+          "versionCode": 6,
+          "stock": "CN.stock.000001",
+          "daily_bars": 241,
+          "zoomed_bars": 172,
+          "minute_points": 242,
+          "selected_date_sync": "2026-06-01",
+          "watch_price_matches_api": true,
+          "watch_preferences_restored": true
+        },
+        "calendar_watch_studies": "important meetings/releases, high-importance economics, independent watch price, axis/volume/MA/MACD/KDJ/RSI/BOLL verified"
+      },
+      "acceptance": {
+        "raw_to_production": "verified with real schedules and stored quotes; source-specific BLS unavailability retained",
+        "pc_backup_restore": {
+          "restore_verified": true,
+          "sha256": "073648fe254801b0d2581ea65df09a439a10c487d54c1b440285b0c64c99c350",
+          "bytes": 390201344,
+          "rows": {
+            "instruments": 8772,
+            "bars": 1331079,
+            "datasets": 19065,
+            "feed_snapshots": 5674,
+            "supplemental_points": 21492
+          },
+          "stocks_with_history": 5576,
+          "stock_window_rows": 1320797,
+          "pc_restore": "passed"
+        },
+        "artifacts": {
+          "credential_scan": "passed",
+          "artifacts": {
+            "Gproject-Android-v0.6.4.apk": {
+              "bytes": 19775006,
+              "sha256": "c69e8519ff72965d063e95f459e7f3d0d3b5722c7c9d6a53ea4a2526bf25cdb4"
+            },
+            "Gproject-Windows-v0.6.4.zip": {
+              "bytes": 96851347,
+              "sha256": "419f3441739985588c8b35ed630e3f3d0888d099a5382b4fe6521e347f8007c0"
+            }
+          }
+        },
+        "details": "docs/CALENDAR-STUDIES-ACCEPTANCE-20261016.md",
+        "all_a_expansion": {
+          "status": "accepted",
+          "details": "docs/FULL-A-ACCEPTANCE-20261016.md",
+          "database_backup": {
+            "restore_verified": true,
+            "bytes": 91500544,
+            "sha256": "94a7020530fae9fb04eeca1f683417b94c6d8d0bde378f5d3bee1d020923723c",
+            "rows": {
+              "instruments": 8772,
+              "bars": 203731,
+              "datasets": 16679,
+              "feed_snapshots": 5674,
+              "supplemental_points": 21492
+            },
+            "stock_window_rows": 166593,
+            "stocks_with_window_history": 5576
+          },
+          "raw_comparison": {
+            "status": "passed",
+            "counts": {
+              "raw_rows": 163473,
+              "raw_fields": 1307784,
+              "qfq_closes": 163473,
+              "source_adapter_files": 10944,
+              "sha256_verified": 10944
+            },
+            "basis": "retained AKShare response rows and their recorded SHA-256 compared independently against production OHLC, volume, amount and adjusted closes; original 104 series retain previous acceptance evidence"
+          },
+          "pc_acceptance": {
+            "pc_restore": "passed",
+            "sha256": "94a7020530fae9fb04eeca1f683417b94c6d8d0bde378f5d3bee1d020923723c",
+            "bytes": 91500544,
+            "public_ranking_rows_compared_with_backup": 5554,
+            "checks_per_rank": [
+              "actual raw close",
+              "price publisher",
+              "adjustment publisher",
+              "five exact-session price return"
+            ],
+            "client_tests": {
+              "tests": 87,
+              "failures": 0,
+              "errors": 0,
+              "skipped": 0
+            }
+          }
+        },
+        "history_52w": {
+          "status": "accepted",
+          "target": "2026-10-15",
+          "calendar_weeks": 52,
+          "calendar_start": "2025-10-17",
+          "sessions": 241,
+          "catalog": 5577,
+          "stocks_with_history": 5576,
+          "stock_window_rows": 1320797,
+          "full_session_count": 4957,
+          "recent_listings": 162,
+          "verified_halt_stocks": 458,
+          "not_listed_at_target": [
+            {
+              "id": "CN.stock.920196",
+              "symbol": "920196",
+              "name": "N南乳",
+              "listed_date": "2026-10-16"
+            }
+          ],
+          "unexplained_stock_days": 0,
+          "source_reconciliation": {
+            "status": "passed",
+            "counts": {
+              "raw_rows": 1297682,
+              "raw_fields": 10381456,
+              "qfq_closes": 1320818,
+              "evidence_files": 11008,
+              "sha256_verified": 11008
+            },
+            "basis": "per-instrument bounded memory verification of retained adapter responses, hashes, stored raw fields and same-fetch adjusted closes"
+          },
+          "database": {
+            "restore_verified": true,
+            "sha256": "073648fe254801b0d2581ea65df09a439a10c487d54c1b440285b0c64c99c350",
+            "bytes": 390201344,
+            "rows": {
+              "instruments": 8772,
+              "bars": 1331079,
+              "datasets": 19065,
+              "feed_snapshots": 5674,
+              "supplemental_points": 21492
+            },
+            "stocks_with_history": 5576,
+            "stock_window_rows": 1320797
+          },
+          "pc_acceptance": {
+            "pc_restore": "passed",
+            "sha256": "073648fe254801b0d2581ea65df09a439a10c487d54c1b440285b0c64c99c350",
+            "bytes": 390201344,
+            "independent_52_week_stock_audits": 5577,
+            "unexplained_stock_days": 0,
+            "public_ranking_rows_compared_with_backup": 5554,
+            "client_tests": {
+              "tests": 88,
+              "failures": 0,
+              "errors": 0,
+              "skipped": 0
+            }
+          },
+          "production": {
+            "source_files_matched": 38,
+            "plan": {
+              "target": "2026-10-15",
+              "first": "2025-10-17",
+              "window_weeks": 52,
+              "window_sessions": 241,
+              "catalog": 5577,
+              "already_accounted": 5577,
+              "pending": 0,
+              "batch_limit": 10000
+            },
+            "worker": "inactive",
+            "worker_enabled": "disabled",
+            "certificate_renewal": "enabled",
+            "service": [
+              "NRestarts=0",
+              "MemoryCurrent=285831168",
+              "MemoryPeak=325189632",
+              "MemoryMax=402653184",
+              "ActiveState=active"
+            ]
+          },
+          "beijing_crosscheck": {
+            "status": "passed",
+            "stock": "920779",
+            "sessions": 241,
+            "OHLC_fields_compared": 964,
+            "max_price_difference": 0,
+            "price_tolerance": 0.01,
+            "max_volume_difference_shares": 50.0,
+            "source_pair": [
+              "akshare/sina stored raw daily",
+              "Tencent original unadjusted daily"
+            ],
+            "basis": "independent publisher check; numeric differences retained, no overwrite"
+          },
+          "public_https": {
+            "checks": 42,
+            "ranked_stocks": 5554,
+            "missing_data_count": 0,
+            "maximum_request_seconds": 3.047
+          },
+          "backend_tests": 177,
+          "client_tests": 88,
+          "artifacts": {
+            "Gproject-Android-v0.6.1.apk": {
+              "bytes": 18943950,
+              "sha256": "ba371747de085c080ef5212e68d7393ffe651d597a6fcd9b7fbe7e0c42fa1647"
+            },
+            "Gproject-Windows-v0.6.1.zip": {
+              "bytes": 96705546,
+              "sha256": "ae647f170c94836501893b284049a7d8eabf8993ab769799e243958895497ff0"
+            }
+          },
+          "automatic_jobs": false,
+          "scope": "current A-share pool raw daily prices; other datasets retain existing windows"
+        }
+      }
     }
+  },
+  "manual_backup_064": {
+    "status": "server_consistent_backup",
+    "bytes": 663519232,
+    "sha256": "1685729822e2a5a45fd899786697552aef37726ac633f7db1d89b8993ccdec32",
+    "automatic_backup_enabled": false
   }
 }

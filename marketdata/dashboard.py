@@ -17,7 +17,7 @@ def report(cfg):
         supplemental=[r[0] for r in con.execute('SELECT feed_key FROM supplemental_feeds')]
         count=con.execute("SELECT count(DISTINCT i.id) FROM instruments i JOIN bars b ON b.instrument_id=i.id WHERE i.market='CN' AND i.kind='stock'").fetchone()[0]
         minutes=con.execute("SELECT max(substr(feed_key,-10)),count(*) FROM feed_snapshots WHERE feed_key LIKE 'intraday:CN.stock.%' AND status='complete'").fetchone()
-    return dict(api_version='0.6.3',history_sessions=30,stock_history_weeks=cfg.get('stock_history_weeks',0),generated_at=db.now_iso(),
+    return dict(api_version='0.6.4',history_sessions=30,stock_history_weeks=cfg.get('stock_history_weeks',0),generated_at=db.now_iso(),
                 ranking_period_sessions=7,ranking_display_limits=dict(stock=50,etf=10),focused_topic_count=22,
                 intraday_coverage=dict(trade_date=minutes[0],stocks=minutes[1],mode='stored closed-session snapshot'),
                 calendar_targets=targets,latest_dates=dict(cn=dates.get('CN'),us=dates.get('US'),boards=board_date,
@@ -29,6 +29,7 @@ def report(cfg):
                 features=dict(gainers=any(k.startswith('adjusted:') for k in feeds),boards=bool(board_date),
                     board_funds=any(k.startswith('board-flows:') for k in feeds),macro=any(k.startswith('macro:') for k in feeds),
                     calendar='calendar:wscn' in feeds,policy=any(k.startswith('policy:') for k in feeds),lhb=bool(lhb_date),
-                    priority_news=any(k.startswith('priority-news:') for k in feeds),focus_boards=True,intraday=bool(minutes[1])),
+                    priority_news=any(k.startswith('priority-news:') for k in feeds),focus_boards=True,intraday=bool(minutes[1]),
+                    important_calendar=any(k.startswith('important:') for k in feeds),watch_quotes=True),
                 removed_features=['limit_up_ladder','model_inference','long_history_expansion','ths_board_funds'],
                 automatic_collection_enabled=bool(cfg.get('automatic_collection',False)))
