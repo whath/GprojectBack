@@ -97,7 +97,8 @@ def test_alert_dedup_resolve_and_health():
     alert("same","first");alert("same","second")
     with db.connect() as con: assert con.execute("SELECT count(*) FROM operational_alerts").fetchone()[0]==1
     alert("same")
-    assert "worker_heartbeat_stale" in health()["issues"]
+    assert health()['worker_mode']=='disabled_by_configuration'
+    assert "worker_heartbeat_stale" not in health()["issues"]
     heartbeat("idle");daily_backup(config())
     assert health()["ready"]
     with TestClient(app) as client:
@@ -173,7 +174,9 @@ def test_us_resolved_identifiers_survive_discovery_outage(monkeypatch):
         assert con.execute("SELECT status FROM tasks WHERE task_key='catalog:us'").fetchone()[0]=="complete"
 
 
-def test_health_reports_missing_or_corrupt_backup_without_crashing():
+def test_health_reports_missing_or_corrupt_backup_without_crashing(monkeypatch):
+    cfg=dict(config(),automatic_backup=True)
+    monkeypatch.setattr('marketdata.health.config',lambda:cfg)
     heartbeat("idle")
     destination=daily_backup(config())
     destination.unlink()

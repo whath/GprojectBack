@@ -10,70 +10,159 @@
   "public_https_acceptance": {
     "status": "verified",
     "label": "已验收",
-    "checked_on": "2026-10-15",
+    "checked_on": "2026-10-16",
     "dns_a_record": "39.96.22.254",
     "tls_certificate_expires": "2026-12-29",
     "certificate_renewal_dry_run": "passed",
-    "desktop_https": "passed",
-    "mobile_cellular_https": "user_confirmed_passed",
+    "desktop_https": "40_checks_passed",
+    "mobile_cellular_https": "previous_user_confirmation_2026-10-15; new_APK_not_installed",
     "http_redirect_status": 301,
     "unauthorized_status": 401,
     "public_docs_status": 404
   },
   "server_changes_performed": true,
   "runtime": {
-    "checked_on": "2026-10-15",
-    "server_api_version": "0.5.0",
-    "local_api_version": "0.5.0",
+    "checked_on": "2026-10-16",
+    "server_api_version": "0.6.0",
+    "local_api_version": "0.6.0",
+    "history_sessions": 30,
     "worker": "inactive_disabled_by_user",
     "automatic_monitoring": "paused_by_user",
-    "release_commit": "0b7e69ec15cb200e17e31f9294d257c22047640f",
-    "data_acceptance_date": "2026-10-14",
-    "client_acceptance_date": "2026-10-15",
+    "automatic_collection": false,
+    "automatic_backfill": false,
+    "automatic_pc_backup": false,
+    "certificate_renewal": "enabled",
     "data_acceptance_dates": {
       "CN": "2026-10-15",
-      "US": "2026-10-14"
+      "US": "2026-10-15",
+      "membership_observed": "2026-10-16"
     }
   },
   "client_integration": {
-    "checked_on": "2026-10-15",
-    "client_baseline_commit": "d4473803200076999bee90f9926c83ae702a09ee",
-    "client_delivery_commit": "b4502d0a3010b5d62d32b2071b6ddd7a8393264c",
-    "api_version": "0.5.0",
-    "core_path_templates": 9,
-    "core_source_blocked_templates": 2,
-    "remaining_gap_groups": 7,
-    "client_tests": 88,
-    "client_live_https": "passed",
+    "checked_on": "2026-10-16",
+    "business_version": "0.6.0",
+    "desktop_package_version": "1.6.0",
+    "client_tests": 87,
+    "failures": 0,
+    "skipped": 0,
+    "real_https_repository_and_rendering": "passed",
     "android_build": "passed",
+    "windows_portable_build": "passed",
     "android_device_install": "not_performed",
-    "full_configured_acceptance_date": "2026-10-14",
-    "current_cn_trade_date": "2026-10-15",
-    "current_cn_available_series": 112,
-    "current_cn_expected_series": 112,
-    "current_cn_pending_series": 0,
-    "configured_stocks_with_250_sessions": 5,
-    "stock_funds_records": 605,
-    "news_active_records": 48,
-    "verified_catalog_stocks_250_sessions": 96,
-    "full_configured_market_dates": {
-      "CN": "2026-10-15",
-      "US": "2026-10-14"
-    }
+    "mobile_render_dimensions": "390x844",
+    "desktop_render_dimensions": "1240x900",
+    "backend_tests": 166,
+    "public_api_checks": 40
   },
-  "free_data_delivery": {
-    "checked_on": "2026-10-15",
-    "backend_tests": 151,
-    "public_api_checks": 33,
-    "indices": 7,
-    "minute_rows": 1205,
-    "valuation_rows": 8612,
-    "reported_limit_up_rows": 36,
-    "fomc_meetings": 16,
-    "configured_cn_daily": "112/112",
-    "configured_stock_etf_250": "7/7",
-    "catalog_stock_250": "96/5576",
-    "automatic_jobs": "paused_by_user",
-    "detail": "docs/FREE-DATA-DELIVERY-20261015.md"
-  }
+  "coverage": {
+    "date": "2026-10-15",
+    "five_session_gainers": {
+      "stock": {
+        "eligible": 104,
+        "expected": 5576,
+        "complete": false
+      },
+      "etf": {
+        "eligible": 2,
+        "expected": 1702,
+        "complete": false
+      },
+      "industry": {
+        "eligible": 77,
+        "expected": 496,
+        "complete": false
+      },
+      "concept": {
+        "eligible": 2,
+        "expected": 508,
+        "complete": false
+      }
+    },
+    "configured_cn_stocks": 5,
+    "configured_cn_etfs": 2,
+    "configured_em_boards": {
+      "industry": 77,
+      "concept": 2
+    },
+    "us_series": 24,
+    "macro_assets": 5,
+    "macro_dates": {
+      "gold": "2026-10-15",
+      "brent": "2026-10-14",
+      "us2y": "2026-10-15",
+      "us10y": "2026-10-15",
+      "us30y": "2026-10-15"
+    },
+    "calendar_events": 1575,
+    "calendar_next_week_events": 214,
+    "official_policy_source_observations": 89,
+    "current_policy_items": 45,
+    "current_membership_rows": 7398,
+    "full_market_complete": false
+  },
+  "acceptance": {
+    "raw_to_production": {
+      "status": "passed",
+      "target": "2026-10-15",
+      "counts": {
+        "macro_observations": 150,
+        "adjusted_instruments": 106,
+        "adjusted_closes": 3180,
+        "board_flow_points": 2370,
+        "calendar_events": 1575,
+        "official_policy_observations": 89,
+        "board_price_rows": 2370,
+        "board_price_fields": 18960,
+        "current_membership_boards": 79,
+        "current_membership_rows": 7398,
+        "source_files_sha256_verified": 239
+      },
+      "basis": "retained publisher responses compared with normalized stored values; no mock responses"
+    },
+    "pc_backup_restore": {
+      "restore_verified": true,
+      "bytes": 38854656,
+      "sha256": "3946b055e8144c6eb3153ee53e929afd8abc4aea015259cb541f3f481823bd40",
+      "rows": {
+        "instruments": 8771,
+        "bars": 46572,
+        "datasets": 16373,
+        "feed_snapshots": 202,
+        "supplemental_points": 21492
+      },
+      "history_sessions": 30,
+      "configured_board_counts": {
+        "industry": 77,
+        "concept": 2
+      },
+      "worker_active": false,
+      "worker_enabled": "disabled",
+      "certificate_renewal": "enabled"
+    },
+    "artifacts": {
+      "Gproject-Android-v0.6.0.apk": {
+        "bytes": 18943950,
+        "sha256": "dd1e039387ac6948a7e6a9712dd11c5c884b15804e276fe2c2698740ca15c908"
+      },
+      "Gproject-Windows-v0.6.0.zip": {
+        "bytes": 96698246,
+        "sha256": "b4621909868381c8bb304610385884c85cccbf43b40da7759b58440c4c233e81"
+      }
+    },
+    "details": "docs/REVISION-DELIVERY-20261016.md"
+  },
+  "removed_features": [
+    "limit_up_ladder",
+    "signal_scan_ui",
+    "model_inference_ui",
+    "long_history_expansion_ui",
+    "ths_board_funds_and_membership"
+  ],
+  "source_limits": [
+    "gainers rank only qualified collected instruments, not all-market coverage",
+    "EM board levels differ from THS classifications",
+    "gold is Sina XAU CFD reference; no LBMA or official settlement assertion",
+    "policy source lists are not exhaustive archives",
+    "public source availability has no long-term SLA"
+  ]
 }

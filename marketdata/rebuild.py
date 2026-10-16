@@ -18,7 +18,9 @@ def rebuild_us_sina(identifier,target,provider=None,cfg=None):
             old=[dict(r) for r in con.execute("SELECT * FROM bars WHERE instrument_id=? ORDER BY trade_date",(identifier,))]
         if not item or not old: raise ValueError("rebuild requires an existing US series")
         if target.isoformat()<old[-1]["trade_date"]: raise ValueError("target must include existing latest date")
-        start=min(old[0]["trade_date"],(target-timedelta(days=cfg["history_days"])).isoformat())
+        # An explicit source rebuild must preserve archived dates, independently of
+        # the shorter business query window.
+        start=old[0]['trade_date']
         raw=(provider or AKProvider(cfg)).call("stock_us_daily",symbol=item["symbol"],adjust="")
         rows=normalize.bars([r for r in raw if normalize.day_string(r["日期"])>=start],target.isoformat(),item["kind"],"US")
         indexed={r["trade_date"]:r for r in rows}

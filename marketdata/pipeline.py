@@ -114,11 +114,17 @@ class Collector:
             earliest, latest = con.execute("SELECT min(trade_date),max(trade_date) FROM bars WHERE instrument_id=? AND trade_date<=? AND adjustment='none'", (item["id"], self.day.isoformat())).fetchone()
             sources = {r[0] for r in con.execute("SELECT DISTINCT source FROM bars WHERE instrument_id=? AND adjustment='none'", (item["id"],))}
             requested = con.execute("SELECT * FROM history_requests WHERE instrument_id=?", (item["id"],)).fetchone()
-        start = self.day - timedelta(days=self.cfg["history_days"])
+        if self.cfg.get('history_sessions'):
+            from .history import window_start
+            start = window_start(self.market, self.day, self.cfg)
+            # Old requests never expand the revised business window.
+            requested = None
+        else:
+            start = self.day - timedelta(days=self.cfg["history_days"])
         if requested:
             start = min(start, date.fromisoformat(requested["start_date"]))
         # Extend short history before entering the recent-revision mode.
-        if latest and not requested and earliest <= start.isoformat():
+        if latest and not requested and not self.refresh and earliest <= start.isoformat():
             start = max(start, date.fromisoformat(latest) - timedelta(days=10))
         kwargs = dict(symbol=item["source_code"], start_date=start.strftime("%Y%m%d"),
                       end_date=self.day.strftime("%Y%m%d"), adjust="",

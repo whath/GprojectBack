@@ -4,7 +4,7 @@ from datetime import datetime,timezone
 
 from . import db
 from .operations import report_tasks
-from .settings import data_dir
+from .settings import data_dir, config
 
 
 def offsite_status(now=None):
@@ -20,6 +20,9 @@ def offsite_status(now=None):
 
 def health(now=None):
     now=now or datetime.now(timezone.utc)
+    cfg=config()
+    worker_required=bool(cfg.get('automatic_collection',False))
+    backup_required=bool(cfg.get('automatic_backup',worker_required))
     with db.connect() as con:
         con.execute("SELECT 1").fetchone()
         heartbeat=con.execute("SELECT * FROM worker_heartbeat WHERE id=1").fetchone()
@@ -37,10 +40,11 @@ def health(now=None):
     backup_age=(now-datetime.fromisoformat(backup["created_at"])).total_seconds() if backup else None
     free=shutil.disk_usage(data_dir()).free
     issues=[]
-    if age is None or age>300: issues.append("worker_heartbeat_stale")
-    if backup_age is None or backup_age>30*3600: issues.append("backup_stale")
+    if worker_required and (age is None or age>300): issues.append("worker_heartbeat_stale")
+    if backup_required and (backup_age is None or backup_age>30*3600): issues.append("backup_stale")
     if free<1024**3: issues.append("disk_space_low")
     return {"ready":not issues,"database":"ok","worker":dict(heartbeat) if heartbeat else None,
+            "worker_required":worker_required,"worker_mode":"scheduled" if worker_required else "disabled_by_configuration",
             "heartbeat_age_seconds":age,"backup":backup,"offsite_backup":offsite_status(now),"disk_free_bytes":free,"issues":issues}
 
 

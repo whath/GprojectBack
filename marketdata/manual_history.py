@@ -12,7 +12,7 @@ from .pipeline import Collector, CollectorLock
 from .provider import AKProvider
 
 
-def catalog_coverage(day, cfg, count=250, kinds=('stock', 'etf'), scope='catalog'):
+def catalog_coverage(day, cfg, count=30, kinds=('stock', 'etf'), scope='catalog'):
     expected_days = set(sessions('CN', day, count, cfg))
     with db.connect() as con:
         instruments = [dict(r) for r in con.execute('''SELECT i.*,l.listed_date FROM instruments i
@@ -39,11 +39,11 @@ def catalog_coverage(day, cfg, count=250, kinds=('stock', 'etf'), scope='catalog
                 incomplete_count=sum(not i['complete'] for i in items), items=items)
 
 
-def run(cfg, day, count=250, max_items=100, budget=600, kinds=('stock', 'etf'), scope='catalog', raw_dir=None):
+def run(cfg, day, count=30, max_items=100, budget=600, kinds=('stock', 'etf'), scope='catalog', raw_dir=None):
     validate_collection('CN', day, cfg)
     began = time.monotonic()
     before = catalog_coverage(day, cfg, count, kinds, scope)
-    settings = dict(cfg, history_days=(day - date.fromisoformat(sessions('CN', day, count, cfg)[0])).days,
+    settings = dict(cfg, history_sessions=count, history_days=(day - date.fromisoformat(sessions('CN', day, count, cfg)[0])).days,
                     collection_budget_seconds=budget, request_timeout_seconds=30, request_attempts=1)
     delegate = AKProvider(settings)
     folder = Path(raw_dir) if raw_dir else None

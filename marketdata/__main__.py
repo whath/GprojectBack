@@ -31,15 +31,22 @@ def main():
     commands.add_parser("collect-events")
     supplemental=commands.add_parser("collect-supplemental")
     supplemental.add_argument("--date",type=date.fromisoformat,required=True)
-    supplemental.add_argument("--feature",action="append",choices=['indices','minutes','valuation','limit-up'],required=True)
+    supplemental.add_argument("--feature",action="append",choices=['indices','minutes','valuation'],required=True)
     supplemental.add_argument("--symbol",action="append")
     supplemental.add_argument("--raw-dir",type=Path)
     scheduled=commands.add_parser("collect-scheduled-events")
     scheduled.add_argument("--year",type=int,required=True)
     scheduled.add_argument("--raw-dir",type=Path)
+    context=commands.add_parser('collect-context')
+    context.add_argument('--feature',action='append',choices=['macro','calendar','policy','boards','gainers'],required=True)
+    context.add_argument('--date',type=date.fromisoformat)
+    context.add_argument('--max-items',type=int,choices=range(1,501),default=10,metavar='1..500')
+    context.add_argument('--scope',choices=['configured','available','catalog'],default='configured')
+    context.add_argument('--all-boards',action='store_true')
+    context.add_argument('--raw-dir',type=Path)
     history=commands.add_parser("collect-history-batch")
     history.add_argument("--date",type=date.fromisoformat,required=True)
-    history.add_argument("--window",type=int,choices=[250,500,1000,2000],default=250)
+    history.add_argument("--window",type=int,choices=[30],default=30)
     history.add_argument("--max-items",type=int,choices=range(1,501),metavar='1..500',default=100)
     history.add_argument("--budget",type=int,choices=range(30,901),metavar='30..900',default=600)
     history.add_argument("--kind",action='append',choices=['stock','etf'])
@@ -64,6 +71,11 @@ def main():
             refresh_alerts(args.market,day.isoformat())
         print(json.dumps(result,ensure_ascii=False))
         raise SystemExit(0 if result["status"]=="complete" else 2)
+    elif args.command=='collect-context':
+        from .contextual import run
+        result=run(config(),args.feature,args.date,args.max_items,args.scope,args.all_boards,args.raw_dir)
+        print(json.dumps(result,ensure_ascii=False))
+        raise SystemExit(0 if result['status']=='complete' else 2)
     elif args.command=="collect-funds":
         from .funds import run_slice
         result=run_slice(config(),args.date,args.symbol)
@@ -99,6 +111,8 @@ def main():
         from .rebuild import rebuild_us_sina
         print(json.dumps(rebuild_us_sina(args.instrument_id,args.date),ensure_ascii=False))
     elif args.command=="worker":
+        if not config().get('automatic_collection',False):
+            raise SystemExit('Automatic collection is disabled by configuration; use explicit manual commands')
         from .scheduler import run_once
         from .operations import alert
         with CollectorLock("worker.lock"):

@@ -18,10 +18,15 @@ def sessions(market, end, count, cfg):
     raise ValueError("calendar cannot supply the requested window")
 
 
-def audit(identifier, end, cfg, count=250):
+def window_start(market, end, cfg, count=None):
+    return date.fromisoformat(sessions(market, end, count or cfg.get('history_sessions', 30), cfg)[0])
+
+
+def audit(identifier, end, cfg, count=None):
+    count = count or cfg.get('history_sessions', 30)
     expected = sessions(identifier.split(".")[0], date.fromisoformat(end), count, cfg)
     with db.connect() as con:
-        rows = con.execute("SELECT trade_date FROM bars WHERE instrument_id=? AND trade_date<=? AND adjustment='none' ORDER BY trade_date", (identifier, end)).fetchall()
+        rows = con.execute("SELECT trade_date FROM bars WHERE instrument_id=? AND trade_date>=? AND trade_date<=? AND adjustment='none' ORDER BY trade_date", (identifier, expected[0], end)).fetchall()
         lifecycle = con.execute("SELECT listed_date FROM instrument_lifecycle WHERE instrument_id=?", (identifier,)).fetchone()
         suspended = {r[0] for r in con.execute("SELECT trade_date FROM datasets WHERE dataset='suspensions' AND market=? AND symbol=?", (identifier.split(".")[0], identifier.rsplit(".", 1)[-1]))}
     dates = {r[0] for r in rows}

@@ -36,8 +36,8 @@ async def lifespan(app):
     yield
 
 
-app=FastAPI(title="Personal EOD Market API",version="0.5.0",lifespan=lifespan,
-            description="收盘数据服务；CN 交易日北京时间 15:10、17:10、19:10 三轮采集；美股行业 ETF 代理排名和可编辑 AI 观察池。")
+app=FastAPI(title="Personal EOD Market API",version="0.6.0",lifespan=lifespan,
+            description="个人近 30 个交易日收盘数据：5 日涨幅、东方财富板块资金、龙虎榜、美股观察、日度宏观、经济日历与官方政策。自动采集默认关闭。")
 
 if config().get("cors_origins"):
     app.add_middleware(CORSMiddleware,allow_origins=config()["cors_origins"],allow_methods=["GET"],
@@ -129,9 +129,14 @@ def tasks(market:Literal["CN","US"],trade_date:date|None=None,
 @app.get("/v1/instruments",dependencies=[Depends(authorize)])
 def instruments(request:Request,market:Literal["CN","US"]|None=None,kind:Literal["stock","etf","industry","concept"]|None=None,
                 search:str=Query("",max_length=80),limit:int=Query(100,ge=1,le=500),offset:int=Query(0,ge=0),
-                refresh:bool=False,snapshot_id:str|None=Query(None,pattern=r"^[a-f0-9]{64}$")):
+                refresh:bool=False,snapshot_id:str|None=Query(None,pattern=r"^[a-f0-9]{64}$"),available_only:bool=False):
     clauses=["(i.symbol LIKE ? OR i.name LIKE ?)","COALESCE(l.status,'listed')='listed'"]
     args=[f"%{search}%",f"%{search}%"]
+    if available_only:
+        from .history import window_start
+        first=min(window_start(m,latest_ready(m,config()),config()).isoformat() for m in ('CN','US'))
+        clauses.append("EXISTS(SELECT 1 FROM bars b WHERE b.instrument_id=i.id AND b.adjustment='none' AND b.trade_date>=?)")
+        args.append(first)
     for field,value in (("market",market),("kind",kind)):
         if value:
             clauses.append("i."+field+"=?")
@@ -154,12 +159,12 @@ def instruments(request:Request,market:Literal["CN","US"]|None=None,kind:Literal
             if states and states[0][0]=="failed":
                 raise HTTPException(503,"catalog collection failed; retry later")
         return {"total":len(rows),"items":rows}
-    return snapshot_page(["instruments",market,kind,search],offset,limit,load,
+    return snapshot_page(["instruments",market,kind,search,available_only],offset,limit,load,
                          request.headers.get("authorization",""),refresh,snapshot_id)
 
 
 @app.get("/v1/bars/{instrument_id}",dependencies=[Depends(authorize)])
-def bars(instrument_id:str,start:date|None=None,end:date|None=None,limit:int=Query(500,ge=1,le=2000)):
+def bars(instrument_id:str,start:date|None=None,end:date|None=None,limit:int=Query(30,ge=1,le=2000)):
     if start and end and start>end:
         raise HTTPException(422,"start must not follow end")
     with db.connect() as con:
@@ -167,9 +172,16 @@ def bars(instrument_id:str,start:date|None=None,end:date|None=None,limit:int=Que
         if not item:
             raise HTTPException(404,"unknown instrument")
         cutoff=min(end.isoformat() if end else chosen_day(item["market"],None),chosen_day(item["market"],None))
+        from .history import window_start
+        try:
+            first=window_start(item['market'],date.fromisoformat(cutoff),config()).isoformat()
+        except ValueError:
+            raise HTTPException(422,'date is outside the supported calendar range') from None
+        effective_start=max(start.isoformat() if start else first,first)
+        limit=min(limit,30)
         rows=[dict(r) for r in con.execute('''SELECT * FROM bars WHERE instrument_id=? AND trade_date>=?
           AND trade_date<=? AND adjustment='none' ORDER BY trade_date DESC LIMIT ?''',
-          (instrument_id,(start or date(1900,1,1)).isoformat(),cutoff,limit))]
+          (instrument_id,effective_start,cutoff,limit))]
         states=[dict(r) for r in con.execute("SELECT status,message,updated_at FROM tasks WHERE task_key=? AND trade_date<=? ORDER BY trade_date DESC",("bar:"+instrument_id,cutoff))]
     if not rows and states and states[0]["status"]=="failed":
         raise HTTPException(503,"history collection failed; retry later")
@@ -185,24 +197,27 @@ def bars(instrument_id:str,start:date|None=None,end:date|None=None,limit:int=Que
             coverage_info=audit(instrument_id,cutoff,config(),limit)
         except ValueError:
             raise HTTPException(422,"date is outside the supported calendar range") from None
-        if coverage_info["missing_dates"]:
-            requested_start=coverage_info["missing_dates"][0]
-            with db.connect() as con:
-                con.execute('''INSERT INTO history_requests VALUES(?,?,?,?) ON CONFLICT(instrument_id)
-                  DO UPDATE SET start_date=min(history_requests.start_date,excluded.start_date),
-                  target_date=max(history_requests.target_date,excluded.target_date),updated_at=excluded.updated_at
-                  WHERE excluded.start_date<history_requests.start_date OR excluded.target_date>history_requests.target_date''',
-                  (instrument_id,requested_start,cutoff,db.now_iso()))
     return {"instrument":dict(item),"adjustment":"none","items":list(reversed(rows)),"task_status":states[:1],
-            "history_coverage":coverage_info}
+            "history_coverage":coverage_info,"window_sessions":30,"window_start":first,"collection_on_read":False}
 
 
 @app.get("/v1/cn/rankings",dependencies=[Depends(authorize)])
 def rankings(kind:Literal["stock","etf","industry","concept"]="industry",trade_date:date|None=None,limit:int=Query(50,ge=1,le=500),
              metric:Literal["price_change_pct","change_pct"]="price_change_pct",
-             classification_source:Literal["ths","eastmoney"]|None=None):
+             classification_source:Literal["ths","eastmoney"]|None=None,period:Literal['1d','5d']='1d',
+             offset:int=Query(0,ge=0),refresh:bool=False,snapshot_id:str|None=Query(None,pattern=r'^[a-f0-9]{64}$'),request:Request=None):
     day=chosen_day("CN",trade_date)
     cfg=config()
+    if period=='5d':
+        from .gainers import ranking
+        source=classification_source or cfg.get('cn_sources',{}).get('boards','eastmoney')
+        def load(con):
+            try:return ranking(date.fromisoformat(day),cfg,kind,source,con)
+            except (ValueError,KeyError,TypeError):
+                raise HTTPException(503,'stored gainers data failed validation') from None
+        return snapshot_page(['gainers',kind,day,source],offset,limit,
+                             load,
+                             request.headers.get('authorization',''),refresh,snapshot_id)
     previous=date.fromisoformat(day)-timedelta(days=1)
     for _ in range(31):
         if session_close("CN",previous,cfg) is not None:
@@ -269,16 +284,20 @@ def seat_details(symbol:str,trade_date:date,direction:Literal["买入","卖出"]
 def board_members(request:Request,instrument_id:str,observed_date:date,limit:int=Query(100,ge=1,le=500),offset:int=Query(0,ge=0),refresh:bool=False,
                   snapshot_id:str|None=Query(None,pattern=r"^[a-f0-9]{64}$")):
     import re
-    if not re.fullmatch(r"CN\.(industry|concept)\.(THS_\d{6}|BK[A-Z0-9]+)",instrument_id):
-        raise HTTPException(422,"board ID required")
+    if not re.fullmatch(r"CN\.(industry|concept)\.BK\d{4}",instrument_id):
+        raise HTTPException(404,"unsupported board taxonomy")
     from .calendars import CN
     from datetime import datetime
     if observed_date > datetime.now(CN).date():
         raise HTTPException(422,"future membership observation")
     def load(con):
         data=records("members:"+instrument_id,observed_date.isoformat(),None,100000,0,con)
-        if not data["items"] and ".THS_" in instrument_id:
-            raise HTTPException(501,"AKShare 1.19.1 has no verified complete THS membership source")
+        available={r[0] for r in con.execute("SELECT DISTINCT instrument_id FROM bars WHERE trade_date>=? AND adjustment='none'",(observed_date.isoformat(),))}
+        # A prior closed daily bar remains viewable before today's close.
+        from .history import window_start
+        first=window_start('CN',latest_ready('CN',config()),config()).isoformat()
+        available|={r[0] for r in con.execute("SELECT DISTINCT instrument_id FROM bars WHERE trade_date>=? AND adjustment='none'",(first,))}
+        data['items']=[dict(r,has_history='CN.stock.'+r['symbol'] in available) for r in data['items']]
         from .normalize import members
         try:
             if data["items"]:
@@ -289,7 +308,8 @@ def board_members(request:Request,instrument_id:str,observed_date:date,limit:int
                 raise ValueError("member count differs from complete task")
         except (ValueError, KeyError, TypeError):
             raise HTTPException(503,"stored membership failed validation; repair required") from None
-        return data
+        return dict(data,classification_source='eastmoney',observed_date=observed_date.isoformat(),
+                    membership_basis='observed_current_membership; not a historical reconstruction')
     with db.connect() as con:
         states=[r[0] for r in con.execute("SELECT status FROM tasks WHERE market='CN' AND trade_date=? AND task_key=? ORDER BY updated_at DESC LIMIT 1",
                                         (observed_date.isoformat(),"members:"+instrument_id))]
@@ -299,25 +319,22 @@ def board_members(request:Request,instrument_id:str,observed_date:date,limit:int
 
 
 @app.get("/v1/cn/boards/{board_id}/flows",dependencies=[Depends(authorize)])
-def board_flows(board_id:str,limit:int=Query(20,ge=1,le=20),classification_source:Literal["ths"]="ths"):
-    import re
-    if not re.fullmatch(r"CN\.(industry|concept)\.THS_\d{6}",board_id):
-        raise HTTPException(422,"THS board ID required")
-    from .funds import report
-    return report(board_id,limit)
+def board_flows(board_id:str,limit:int=Query(30,ge=1,le=30),classification_source:Literal["eastmoney"]="eastmoney",end:date|None=None):
+    from .board_data import report
+    return report(board_id,limit,end)
 
 
 @app.get("/v1/cn/stocks/{instrument_id}/flows",dependencies=[Depends(authorize)])
-def stock_flows(instrument_id:str,end:date|None=None,limit:int=Query(2000,ge=1,le=2000)):
+def stock_flows(instrument_id:str,end:date|None=None,limit:int=Query(30,ge=1,le=2000)):
     import re
     if not re.fullmatch(r"CN\.stock\.\d{6}",instrument_id):
         raise HTTPException(422,"CN stock ID required")
     from .funds import report
-    return report(instrument_id,limit,end)
+    return report(instrument_id,min(limit,30),end)
 
 
 @app.get("/v1/history-coverage/{instrument_id}",dependencies=[Depends(authorize)])
-def instrument_history_coverage(instrument_id:str,end:date|None=None,limit:int=Query(250,ge=1,le=2000)):
+def instrument_history_coverage(instrument_id:str,end:date|None=None,limit:int=Query(30,ge=1,le=2000)):
     with db.connect() as con:
         item=con.execute("SELECT market FROM instruments WHERE id=?",(instrument_id,)).fetchone()
     if not item:
@@ -325,7 +342,7 @@ def instrument_history_coverage(instrument_id:str,end:date|None=None,limit:int=Q
     from .history import audit
     day=min(chosen_day(item["market"],end),chosen_day(item["market"],None))
     try:
-        return audit(instrument_id,day,config(),limit)
+        return audit(instrument_id,day,config(),min(limit,30))
     except ValueError:
         raise HTTPException(422,"date is outside the supported calendar range") from None
 
@@ -337,30 +354,37 @@ def events(limit:int=Query(100,ge=1,le=100)):
 
 
 @app.get("/v1/economic-calendar",dependencies=[Depends(authorize)])
-def economic_calendar(trade_date:date,limit:int=Query(100,ge=1,le=500)):
-    from .economic import report
-    return report(trade_date.isoformat(),limit)
+def economic_calendar(trade_date:date|None=None,start:date|None=None,end:date|None=None,
+                      region:str|None=Query(None,pattern=r'^[A-Z]{2}$'),limit:int=Query(500,ge=1,le=2000),offset:int=Query(0,ge=0)):
+    from .calendar_feed import report
+    from .calendars import CN
+    from datetime import datetime
+    first=trade_date or start or datetime.now(CN).date()
+    last=trade_date or end or first+timedelta(days=7)
+    data=report(first,last,region)
+    return dict(data,items=data['items'][offset:offset+limit])
 
 
 @app.get("/v1/capabilities",dependencies=[Depends(authorize)])
 def capabilities():
     from importlib.metadata import version
     from .availability import report as availability_report
-    return {"provider":"akshare","version":version("akshare"),
+    return {"provider":"mixed_public_sources","version":"0.6.0","akshare_version":version("akshare"),
             "stock_funds":{"implemented":True,"source":"stock_individual_fund_flow",
                            "transport":config().get("funds_transport","curl_cffi"),
                            "historical_limit":"provider recent window (documented ~100; 120 observed); stored history accumulates"},
-            "ths_members":{"implemented":False,"reason":"no verified complete function in pinned AKShare"},
-            "ths_board_funds":{"implemented":False,"reason":"public industry table lacks dated daily history and required amount precision"},
+            "history_window_sessions":30,
+            "board_funds":{"implemented":True,"classification_source":"eastmoney","endpoint":"/v1/cn/boards/{board_id}/flows"},
+            "gainers":{"implemented":True,"period":"5d","stock_etf_basis":"qfq","endpoint":"/v1/cn/rankings?period=5d"},
             "events":{"news":True,"scheduled_calendar":True,"scheduled_coverage":"official FOMC meetings; date precision only",
                       "scheduled_endpoint":"/v1/scheduled-events","coverage":"configured keyword search only",
-                      "economic_facts":True,"economic_endpoint":"/v1/economic-calendar"},
+                      "economic_facts":True,"economic_source":"wallstreetcn","economic_endpoint":"/v1/economic-calendar"},
             "supplemental":{"indices":"/v1/indices", "index_bars":"/v1/indices/{instrument_id}/bars",
                             "minutes":"/v1/cn/stocks/{instrument_id}/minutes",
                             "valuation":"/v1/cn/stocks/{instrument_id}/metrics",
-                            "limit_up":"/v1/cn/limit-up-ladder",
-                            "collection":"manual only; account-free AKShare sources",
-                            "limit_up_basis":"provider reported; independent rules not certified"},
+                            "collection":"explicit manual collection only"},
+            "macro_assets":{"implemented":True,"endpoint":"/v1/macro/assets"},
+            "policy_news":{"implemented":True,"endpoint":"/v1/policy-news"},
             "data_availability":availability_report(config())}
 
 
@@ -372,11 +396,11 @@ def reference_indices():
 
 @app.get("/v1/indices/{instrument_id}/bars",dependencies=[Depends(authorize)])
 def reference_index_bars(instrument_id:str,start:date|None=None,end:date|None=None,
-                         limit:int=Query(500,ge=1,le=2000)):
+                         limit:int=Query(30,ge=1,le=2000)):
     if start and end and start>end:
         raise HTTPException(422,"start must not exceed end")
     from .supplements import index_report
-    return index_report(instrument_id,start,end,limit)
+    return index_report(instrument_id,start,end,min(limit,30))
 
 
 @app.get("/v1/cn/stocks/{instrument_id}/minutes",dependencies=[Depends(authorize)])
@@ -391,10 +415,47 @@ def stock_metrics(instrument_id:str,end:date|None=None,limit:int=Query(1,ge=1,le
     return valuation_report(instrument_id,end,limit)
 
 
-@app.get("/v1/cn/limit-up-ladder",dependencies=[Depends(authorize)])
-def limit_up_ladder(trade_date:date|None=None):
-    from .supplements import pool_report
-    return pool_report(date.fromisoformat(chosen_day('CN',trade_date)))
+@app.get('/v1/macro/assets',dependencies=[Depends(authorize)])
+def macro_assets():
+    from .macro_assets import report
+    return report()
+
+
+@app.get('/v1/data-overview',dependencies=[Depends(authorize)])
+def data_overview():
+    from .dashboard import report
+    return report(config())
+
+
+@app.get('/v1/macro/assets/{asset_id}/history',dependencies=[Depends(authorize)])
+def macro_history(asset_id:str,limit:int=Query(30,ge=1,le=30)):
+    from .macro_assets import history
+    return history(asset_id,limit)
+
+
+@app.get('/v1/policy-news',dependencies=[Depends(authorize)])
+def policy_news(start:date|None=None,end:date|None=None,publisher:Literal['gov','pbc','csrc','ndrc','mofcom']|None=None,
+                category:Literal['policy_document','interpretation','official_news']|None=None,
+                limit:int=Query(100,ge=1,le=500),offset:int=Query(0,ge=0)):
+    from .policy_news import report
+    from .history import window_start
+    from .calendars import CN
+    from datetime import datetime
+    last=end or datetime.now(CN).date()
+    first=start or window_start('CN',latest_ready('CN',config()),config())
+    data=report(first,last,publisher,category)
+    return dict(data,items=data['items'][offset:offset+limit])
+
+
+@app.get('/v1/cn/fund-rankings',dependencies=[Depends(authorize)])
+def fund_rankings(request:Request,kind:Literal['industry','concept']='industry',period:Literal['1d','5d']='1d',
+                  trade_date:date|None=None,limit:int=Query(50,ge=1,le=500),offset:int=Query(0,ge=0),refresh:bool=False,
+                  snapshot_id:str|None=Query(None,pattern=r'^[a-f0-9]{64}$')):
+    from .board_data import ranking
+    day=chosen_day('CN',trade_date)
+    return snapshot_page(['fund-rankings',kind,period,day],offset,limit,
+                         lambda con:ranking(date.fromisoformat(day),kind,5 if period=='5d' else 1),
+                         request.headers.get('authorization',''),refresh,snapshot_id)
 
 
 @app.get("/v1/scheduled-events",dependencies=[Depends(authorize)])

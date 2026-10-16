@@ -106,13 +106,16 @@ def report(identifier, limit, end=None):
     except (ValueError, KeyError, TypeError):
         raise HTTPException(503, "stored funds failed validation; repair required") from None
     cutoff = min(end.isoformat() if end else latest_ready("CN", config()).isoformat(), latest_ready("CN", config()).isoformat())
-    payload["items"] = [r for r in payload["items"] if r["trade_date"] <= cutoff][-limit:]
+    from .history import sessions
+    days=sessions('CN',date.fromisoformat(cutoff),min(limit,30),config())
+    payload["items"] = [r for r in payload["items"] if r["trade_date"] in days]
     if "board_id" in payload:
         from .history import sessions
         payload["trade_dates"] = sessions("CN", date.fromisoformat(cutoff), limit, config())
         payload["items"] = [r for r in payload["items"] if r["trade_date"] in payload["trade_dates"]]
     payload["latest_date"] = max((r["trade_date"] for r in payload["items"]), default=None)
     payload["stale"] = payload["latest_date"] != cutoff
+    payload['window_sessions']=30
     return payload
 
 

@@ -21,7 +21,7 @@ def test_capabilities_distinguishes_implementation_from_missing_production_data(
         assert payload['data_availability']['markets']['CN']['stale'] is True
         assert client.get('/v1/cn/stocks/CN.stock.000001/flows', headers=HEADERS).status_code == 503
         assert client.get('/v1/events', headers=HEADERS).status_code == 503
-        assert client.get('/v1/cn/boards/CN.industry.THS_881121/flows', headers=HEADERS).status_code == 501
+        assert client.get('/v1/cn/boards/CN.industry.THS_881121/flows', headers=HEADERS).status_code == 404
 
 
 def test_readiness_reports_stale_and_invalid_funds_without_masking_source_gap(monkeypatch):
@@ -38,7 +38,7 @@ def test_readiness_reports_stale_and_invalid_funds_without_masking_source_gap(mo
     assert states['CN.stock.000001']['status'] == 'stale'
     assert states['CN.stock.000001']['stored_rows'] == 1
     assert states['CN.stock.600519']['status'] == 'failed_or_invalid'
-    assert result['scheduled_events_supported'] is False
+    assert result['scheduled_events_supported'] is True
 
 
 def test_one_fresh_stock_cannot_hide_other_missing_series(monkeypatch):

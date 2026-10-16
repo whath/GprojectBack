@@ -137,7 +137,7 @@ def test_expanded_history_request_starts_before_existing_short_history(monkeypat
     assert captured[0] < "20260919"
 
 
-def test_api_queues_history_expansion_without_waiting_and_filters_legacy_future():
+def test_api_does_not_queue_long_history_and_filters_legacy_future():
     stock=item();db.instrument(stock)
     rows=normalize.bars([raw()],"2026-09-30","stock","CN");db.put_bars(stock["id"],rows)
     with db.connect() as con:
@@ -146,7 +146,7 @@ def test_api_queues_history_expansion_without_waiting_and_filters_legacy_future(
         data=client.get("/v1/bars/CN.stock.000001?limit=2000",headers=HEADERS).json()
         assert [r["trade_date"] for r in data["items"]]==["2026-09-30"]
     with db.connect() as con:
-        assert con.execute("SELECT start_date FROM history_requests").fetchone()[0]<"2020-01-01"
+        assert con.execute("SELECT count(*) FROM history_requests").fetchone()[0]==0
 
 
 @pytest.mark.parametrize("day", ["2023-12-31", "2022-12-31"])
@@ -189,7 +189,7 @@ def test_funds_append_limit_end_and_scope_source_pin():
     save_funds(flow(items=[{"trade_date":"2026-09-29","net":-10}]),"CN.stock.000001")
     save_funds(flow(),"CN.stock.000001")
     assert funds_report("CN.stock.000001",2000,date(2026,9,29))["items"]==[{"trade_date":"2026-09-29","inflow":None,"outflow":None,"net":-10}]
-    assert len(funds_report("CN.stock.000001",1)["items"])==1
+    assert len(funds_report("CN.stock.000001",1,date(2026,9,30))["items"])==1
     with pytest.raises(ValueError,match="switch"):
         save_funds(flow(source="akshare/other/main"),"CN.stock.000001")
 
@@ -214,14 +214,14 @@ def test_new_routes_auth_and_unavailable_statuses_preserve_bars():
         paths=("/v1/events","/v1/cn/stocks/CN.stock.000001/flows","/v1/cn/boards/CN.industry.THS_881121/flows")
         for path in paths:
             assert client.get(path).status_code==401
-            assert client.get(path,headers=HEADERS).status_code==(501 if "/boards/" in path else 503)
+            assert client.get(path,headers=HEADERS).status_code==(404 if "/boards/" in path else 503)
         assert client.get("/v1/bars/CN.stock.000001?end=2026-09-30",headers=HEADERS).status_code==200
         assert client.get("/v1/cn/stocks/US.stock.NVDA/flows",headers=HEADERS).status_code==422
-        assert client.get("/v1/cn/boards/CN.industry.BK001/flows",headers=HEADERS).status_code==422
+        assert client.get("/v1/cn/boards/CN.industry.BK001/flows",headers=HEADERS).status_code==404
 
 
 def test_same_day_member_pages_keep_status_and_unique_ids():
-    board="CN.industry.BKTEST"
+    board="CN.industry.BK9999"
     rows=normalize.members([{"代码":f"{i:06d}","名称":"sample"} for i in range(1,501)])
     db.put_dataset("members:"+board,"CN","2026-09-30",rows)
     Collector("CN",date(2026,9,30)).task("members:"+board,lambda:500)
@@ -274,7 +274,7 @@ def test_news_same_url_merges_markets_and_keeps_old_feed_time(event_clock):
 def test_unknown_ths_members_are_never_marked_complete():
     with TestClient(app) as client:
         response=client.get("/v1/cn/boards/CN.industry.THS_881121/members?observed_date=2026-09-30",headers=HEADERS)
-        assert response.status_code==501
+        assert response.status_code==404
 
 
 @pytest.mark.parametrize("complete",[False,True])
@@ -300,7 +300,7 @@ def test_background_queues_rotate_one_at_a_time_and_yield_before_slots(monkeypat
     monkeypatch.setattr("marketdata.scheduler._maintenance_cursor",0)
     for module in ("history","backfill","lifecycle","funds","events","economic"):
         monkeypatch.setattr(f"marketdata.{module}.run_slice",lambda cfg,m=module:calls.append(m))
-    cfg=dict(config(),cn_history_backfill=True)
+    cfg=dict(config(),cn_history_backfill=True,economic_calendar_enabled=True)
     for _ in range(6):maintenance_slice(cfg,datetime(2026,9,30,12,tzinfo=timezone.utc))
     assert len(calls)==6 and len(set(calls))==6
     maintenance_slice(cfg,datetime(2026,9,30,9,8,tzinfo=timezone.utc))
@@ -310,7 +310,7 @@ def test_background_queues_rotate_one_at_a_time_and_yield_before_slots(monkeypat
 def test_failed_subdataset_has_503_without_breaking_overview():
     c=Collector("CN",date(2026,9,30))
     c.task("lhb",lambda:(_ for _ in ()).throw(RuntimeError("upstream failed")))
-    c.task("bar:CN.industry.THS_881121",lambda:(_ for _ in ()).throw(RuntimeError("upstream failed")))
+    c.task("bar:CN.industry.BK9999",lambda:(_ for _ in ()).throw(RuntimeError("upstream failed")))
     with TestClient(app) as client:
         assert client.get("/v1/cn/lhb?trade_date=2026-09-30",headers=HEADERS).status_code==503
         assert client.get("/v1/cn/rankings?trade_date=2026-09-30",headers=HEADERS).status_code==503

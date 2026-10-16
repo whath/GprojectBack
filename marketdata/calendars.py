@@ -56,8 +56,8 @@ def latest_ready(market, config, now=None):
 
 def validate_collection(market, day, config, now=None):
     now = now or datetime.now(timezone.utc)
-    # Manual historical collection also respects the first daily collection time.
-    if market == "CN" and now.astimezone(CN).time() < CN_COLLECTION_TIMES[0]:
+    # Already closed historical sessions may be initialized manually at any hour.
+    if market == "CN" and day >= now.astimezone(CN).date() and now.astimezone(CN).time() < CN_COLLECTION_TIMES[0]:
         raise ValueError("CN collection is allowed only from 15:10 Asia/Shanghai")
     ready = ready_at(market, day, config)
     if ready is None or now < ready:

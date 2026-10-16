@@ -1,12 +1,14 @@
 {
   "same_source_close_supplements": true,
-  "history_days": 760,
+  "history_sessions": 30,
+  "automatic_collection": false,
+  "automatic_backfill": false,
   "cn_stock_funds_enabled": true,
   "funds_transport": "curl_cffi",
   "close_snapshot_budget_seconds": 120,
   "cn_listing_metadata_enabled": true,
   "events_enabled": true,
-  "economic_calendar_enabled": true,
+  "economic_calendar_enabled": false,
   "economic_calendar_days": 3,
   "events_interval_seconds": 3600,
   "event_queries": [
@@ -24,7 +26,7 @@
   "cn_sources": {
     "stock": "tencent",
     "etf": "sina",
-    "boards": "ths"
+    "boards": "eastmoney"
   },
   "cn_all_stocks": false,
   "cn_all_etfs": false,

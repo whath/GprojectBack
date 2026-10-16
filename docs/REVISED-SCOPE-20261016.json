@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "dated_on": "2026-10-16",
+  "status": "implemented_and_deployed; real_source_database_https_verified",
+  "current_runtime_version": "0.6.0",
+  "target_contract_version": "0.6.0",
+  "production_changed_in_this_revision": true,
+  "constraints": {
+    "personal_use": true,
+    "new_paid_sources": false,
+    "new_accounts_or_points": false,
+    "automatic_inspection": false,
+    "automatic_backfill": false,
+    "automatic_collection": false,
+    "automatic_pc_backup": false,
+    "collection_mode": "explicit_finite_manual_runs_only"
+  },
+  "confirmed_scope": {
+    "daily_history": {
+      "window": 30,
+      "unit": "local_market_sessions",
+      "markets": [
+        "CN",
+        "US",
+        "JP",
+        "KR"
+      ],
+      "coverage": "existing market and instrument universe remains unchanged",
+      "new_target_replaces_old_250_500_1000_2000_session_acceptance": true,
+      "existing_archives": "retain; no destructive deletion requested",
+      "catalog_completeness_still_required": true,
+      "news_on_nontrading_days": "included within the natural-date interval spanned by the session window"
+    },
+    "limit_up_ladder": "removed_from_current_client_navigation, API route and collection CLI; archived rows retained",
+    "gainers": {
+      "period_sessions": 5,
+      "kinds": [
+        "stock",
+        "etf",
+        "industry",
+        "concept"
+      ],
+      "formula": "(close[T] / close[T-5] - 1) * 100",
+      "minimum_aligned_close_count": 6,
+      "stock_etf_basis": "qualified same-provider adjusted close; no silent mixture with unadjusted returns",
+      "board_basis": "same-provider board index close",
+      "eligibility": "all six exact market-session closes required; missing, stale and short-history entries excluded with reasons",
+      "coverage": "return expected, eligible, excluded and snapshot identity; do not label a partial universe as full-market"
+    },
+    "macro_assets": {
+      "gold": "USD per troy ounce reference price; user confirmed daily macro basis",
+      "brent": "Europe Brent spot FOB, USD per barrel; user confirmed spot basis",
+      "treasury": "2Y, 10Y and 30Y daily par yield, percent; user confirmed yields rather than bond/futures prices",
+      "history": "latest 30 dated source observations; never align foreign/macro publication calendars to CN stock sessions"
+    },
+    "economic_calendar": {
+      "new_source_required": true,
+      "proposal_window": "history interval spanning 30 CN sessions plus next 7 natural days",
+      "timezone": "explicit source epoch/zone normalized to UTC and rendered in Asia/Shanghai",
+      "scheduled_time_is_not_article_publication_time": true,
+      "preserve_actual_forecast_previous_and_revised": true
+    },
+    "policy_news": {
+      "required": true,
+      "minimum_fields": [
+        "id",
+        "title",
+        "publisher",
+        "original_url",
+        "published_date",
+        "time_precision",
+        "collected_at",
+        "category"
+      ],
+      "optional_fields": [
+        "summary",
+        "effective_date",
+        "document_number",
+        "topics"
+      ],
+      "include_weekends_and_holidays": true,
+      "original_documents_separate_from_interpretations_and_news": true,
+      "unknown_times_and_effective_dates": null,
+      "do_not_infer_policy_beneficiaries": true
+    }
+  },
+  "source_proposals": {
+    "board_funds": {
+      "recommended": "eastmoney_public_dated_industry_and_concept_funds",
+      "status": "implemented; independent Eastmoney IDs and current membership",
+      "page": "https://data.eastmoney.com/bkzj/hy.html",
+      "adapter_reference": [
+        "stock_sector_fund_flow_hist",
+        "stock_concept_fund_flow_hist"
+      ],
+      "cloud_probe": "industry BK1034 and concept BK0574 each returned 40 dated rows through 2026-10-15",
+      "metric": "source-defined main net flow; big plus super-big net flow; not exchange-certified total cash inflow",
+      "taxonomy": "Eastmoney IDs and membership; never attach to THS IDs by equal display name",
+      "alternative": "THS observed snapshots in source rounded units, without promising 30 dated daily records on first use"
+    },
+    "economic_calendar": {
+      "recommended": "wallstreetcn public macro calendar",
+      "page": "https://wallstreetcn.com/calendar",
+      "adapter_reference": "macro_info_ws; direct adapter must retain explicit timezone and raw numeric/text/revision fields",
+      "cloud_probe": "230 records within Asia/Shanghai 2026-10-15 inclusive through 2026-10-23 exclusive; future agenda included",
+      "backup": "existing Fed official calendar retained independently; selected BLS/EIA/central-bank originals used for crosschecks, not a silent synthetic replacement"
+    },
+    "policy_news": {
+      "initial_official_sources": [
+        "https://www.gov.cn/zhengce/",
+        "https://www.pbc.gov.cn/goutongjiaoliu/113456/113469/index.html",
+        "https://www.csrc.gov.cn/",
+        "https://www.ndrc.gov.cn/xxgk/zcfb/tz/",
+        "https://www.mofcom.gov.cn/zcfb/"
+      ],
+      "cloud_probe": "all five current official entry pages accessible; PBC list includes 2026-10-15 and MOFCOM list includes 2026-10-14",
+      "rejected_entrances": [
+        "gov.cn/zhengce/zuixin/home.htm returned 404",
+        "CSRC c100028 common_list.shtml returned a 2021 archive despite HTTP 200"
+      ],
+      "not_yet_certified": "Exhaustive archive/pagination, full article bodies and all publications within 30-session interval remain outside delivered scope; current observed official lists only"
+    },
+    "gold": {
+      "recommended": "sina XAU daily USD reference quote",
+      "page": "https://finance.sina.com.cn/futures/quotes/XAU.shtml",
+      "adapter_reference": "futures_foreign_hist(symbol='XAU')",
+      "cloud_probe": "5186 source daily rows returned, including an incomplete current-date 2026-10-16 row",
+      "not_lbma_benchmark": true,
+      "publisher_page_labels_cfd": true,
+      "exclude_current_open_daily_bar": true,
+      "completed_session_timezone_and_finality_still_to_validate": false,
+      "finality_basis": "Reference daily OHLC only; excludes current UTC date; publisher timezone and official settlement not asserted"
+    },
+    "brent": {
+      "recommended": "EIA Europe Brent Spot FOB",
+      "page": "https://www.eia.gov/dnav/pet/hist/RBRTED.htm",
+      "cloud_probe": "daily history readable; latest observed value 2026-10-14; release page dated 2026-10-15",
+      "unit": "USD/barrel",
+      "publication_lag_is_visible": true
+    },
+    "treasury": {
+      "recommended": "US Treasury Daily Par Yield Curve CSV",
+      "page": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value=2026",
+      "cloud_probe": "198 dated rows; 2 Yr, 10 Yr, 30 Yr fields present; latest 2026-10-15",
+      "unit": "percent",
+      "change_unit": "basis points; do not use asset price return percentage",
+      "not_silently_substituted_with_fred_h15": true
+    }
+  },
+  "source_probe_limits": {
+    "from": "existing Alibaba Cloud host",
+    "at_utc": "2026-10-16T02:21:26+00:00",
+    "policy_probe_at_utc": "2026-10-16T02:23:13+00:00",
+    "one_shot_accessibility_not_long_term_stability_certificate": true,
+    "no_production_db_writes": false,
+    "local_sandbox_dns_failures_not_evidence_of_upstream_failure": true,
+    "note": "Original probe was read-only; subsequent finite manual collection and the 0.6.0 release changed production under the user request"
+  },
+  "execution_order": [
+    "30-session collection, coverage and client window migration; remove ladder entry; deliver 5-session gainers",
+    "admit EM board catalog/membership and dated funds as one consistent source family",
+    "deliver Treasury, EIA Brent and qualified Sina XAU macro feeds",
+    "deliver WSCN economic calendar and official policy/news feed",
+    "manual sample collection, raw-to-database comparison, authenticated API and mobile/desktop acceptance"
+  ],
+  "release_gate": "source probe success alone never changes capabilities to implemented or deployed",
+  "implemented_api_changes": [
+    "bars, metrics and stock funds default to and certify 30 local market sessions",
+    "/v1/cn/rankings gains period=5d with stable pagination and honest eligibility coverage",
+    "EM board flows and fund rankings use separate EM board IDs",
+    "/v1/economic-calendar gains the qualified WSCN adapter and range contract",
+    "/v1/policy-news",
+    "/v1/macro/assets and /v1/macro/assets/{asset_id}/history",
+    "limit-up client entry, collection CLI choice and API route removed (HTTP 404); archives retained"
+  ],
+  "acceptance": {
+    "backend_tests": 166,
+    "public_https_checks": 40,
+    "raw_board_price_rows": 2370,
+    "raw_board_price_fields": 18960,
+    "raw_board_flow_points": 2370,
+    "adjusted_instruments": 106,
+    "adjusted_closes": 3180,
+    "macro_observations": 150,
+    "calendar_events": 1575,
+    "policy_source_observations": 89,
+    "policy_items_in_current_api_window": 45,
+    "pc_restore_verified": true,
+    "coverage": "104/5576 stocks, 2/1702 ETFs, 77/496 industries, 2/508 concepts; incomplete market coverage",
+    "details": "docs/REVISION-DELIVERY-20261016.md",
+    "client_tests": 87,
+    "client_tests_skipped": 0,
+    "current_membership_rows": 7398,
+    "physical_android_install": "not_performed"
+  }
+}

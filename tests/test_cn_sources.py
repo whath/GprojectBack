@@ -75,6 +75,8 @@ class AlternateCN:
 def test_alternate_cn_pipeline_and_rankings(monkeypatch):
     monkeypatch.setattr("marketdata.pipeline.validate_collection",lambda *a:None)
     cfg=config();cfg.update(cn_stocks=["000001"],cn_etfs=["510300"])
+    cfg['cn_sources']['boards']='ths'
+    monkeypatch.setattr('marketdata.api.config',lambda:cfg)
     provider=AlternateCN()
     result=Collector("CN",date(2026,9,29),sample=True,provider=provider,settings=cfg).run()
     assert result["status"]=="partial"  # Empty disclosures remain unverified.

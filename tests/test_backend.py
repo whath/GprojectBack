@@ -36,7 +36,7 @@ def test_cn_time_gate_and_calendar():
     assert session_close("CN",date(2026,10,8),cfg) is not None
     assert session_close("CN",date(2026,10,10),cfg) is None
     with pytest.raises(ValueError,match="15:10"):
-        validate_collection("CN",date(2026,9,29),cfg,datetime(2026,9,30,15,9,59,tzinfo=CN))
+        validate_collection("CN",date(2026,9,30),cfg,datetime(2026,9,30,15,9,59,tzinfo=CN))
     validate_collection("CN",date(2026,9,30),cfg,datetime(2026,9,30,15,10,tzinfo=CN))
 
 
@@ -115,7 +115,7 @@ def test_auth_pagination_dates_and_empty_state():
         client.headers["Authorization"]="Bearer test-secret-token-that-is-at-least-32-characters"
         assert client.get("/v1/instruments?limit=999999").status_code==422
         assert client.get(f"/v1/bars/{item['id']}?start=2026-09-30&end=2026-09-01").status_code==422
-        response=client.get(f"/v1/bars/{item['id']}")
+        response=client.get(f"/v1/bars/{item['id']}?end=2026-09-29")
         assert response.status_code==200 and len(response.json()["items"])==21
         assert "no verified" in client.get("/v1/cn/lhb?trade_date=2026-09-29").json()["empty_means"]
         assert client.get("/v1/us/sectors?trade_date=2026-09-29").json()["complete"] is False

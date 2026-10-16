@@ -5,18 +5,20 @@ from fastapi import HTTPException
 
 from . import db
 from .calendars import latest_ready
+from .history import window_start
 
 
 def report(cfg, now=None):
     now = now or datetime.now(timezone.utc)
     targets = {m: latest_ready(m, cfg).isoformat() for m in ('CN', 'US')}
+    first=window_start('CN',latest_ready('CN',cfg),cfg).isoformat()
     with db.connect() as con:
         latest = dict(con.execute('''SELECT i.market,max(b.trade_date) FROM bars b
             JOIN instruments i ON i.id=b.instrument_id WHERE b.adjustment='none' GROUP BY i.market'''))
         history = [dict(r) for r in con.execute('''SELECT i.id,count(b.trade_date) AS stored_bars,
             min(b.trade_date) AS first_date,max(b.trade_date) AS latest_date FROM instruments i
-            LEFT JOIN bars b ON b.instrument_id=i.id AND b.adjustment='none' AND b.trade_date<=?
-            WHERE i.market='CN' AND i.kind='stock' GROUP BY i.id''', (targets['CN'],))]
+            LEFT JOIN bars b ON b.instrument_id=i.id AND b.adjustment='none' AND b.trade_date>=? AND b.trade_date<=?
+            WHERE i.market='CN' AND i.kind='stock' GROUP BY i.id''', (first,targets['CN']))]
         snapshots = {r['feed_key']: dict(r) for r in con.execute('SELECT * FROM feed_snapshots')}
     funds = []
     from .funds import report as funds_report
@@ -56,11 +58,17 @@ def report(cfg, now=None):
                 scope='latest date among stored series; not whole-market completeness') for m in targets},
                 configured_coverage={m: coverage(m, targets[m], cfg) for m in targets},
                 cn_stock_history=dict(catalog_count=len(history), with_any_history=sum(r['stored_bars'] > 0 for r in history),
-                    with_at_least_250_bars=sum(r['stored_bars'] >= 250 for r in history),
+                    window_sessions=30,with_at_least_30_bars=sum(r['stored_bars'] >= 30 for r in history),
                     configured=[r for r in history if r['id'] in configured],
                     basis='stored unadjusted row counts; calendar completeness requires /v1/history-coverage/{id}'),
                 configured_stock_funds=dict(expected=len(funds), current=sum(r['status'] == 'current' for r in funds), items=funds),
-                news=news, scheduled_events_supported=False,
-                source_limits=['THS complete dated membership unavailable', 'THS dated daily board funds unavailable',
-                               'stock funds provider has a recent window, not a 2000-day backfill',
-                               'keyword news is not a complete scheduled-event calendar'])
+                news=news, scheduled_events_supported=True,
+                economic_calendar=dict(implemented=True,collected='calendar:wscn' in snapshots),
+                policy_news=dict(implemented=True,collected_sources=[k.split(':',1)[1] for k in snapshots if k.startswith('policy:')]),
+                macro_assets=dict(implemented=True,collected_assets=[k.split(':',1)[1] for k in snapshots if k.startswith('macro:')]),
+                gainers=dict(implemented=True,qualified_adjusted_snapshots=sum(k.startswith('adjusted:') for k in snapshots)),
+                source_limits=['history and coverage target is 30 local market sessions',
+                               'board membership is a current observation, not historical membership',
+                               'policy news covers observed official lists, not an exhaustive archive',
+                               'macro publication calendars and release delays differ'],
+                automatic_collection_enabled=bool(cfg.get('automatic_collection',False)))

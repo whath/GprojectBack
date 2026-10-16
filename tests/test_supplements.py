@@ -84,12 +84,12 @@ def test_valuation_negative_pe_retained_and_turnover_requires_same_day_verified_
 def test_missing_supplement_is_503_auth_and_bounds_enforced():
     stock()
     with TestClient(app) as client:
-        for path in ['/v1/indices', '/v1/cn/limit-up-ladder', '/v1/cn/stocks/CN.stock.000001/metrics']:
+        for path in ['/v1/indices', '/v1/cn/stocks/CN.stock.000001/metrics']:
             assert client.get(path).status_code == 401
         assert client.get('/v1/cn/stocks/CN.stock.000001/minutes?trade_date=2026-10-14', headers=HEADERS).status_code == 503
         assert client.get('/v1/indices/CN.index.unknown/bars', headers=HEADERS).status_code == 404
         assert client.get('/v1/cn/stocks/US.stock.NVDA/metrics', headers=HEADERS).status_code == 422
-        assert client.get('/v1/cn/limit-up-ladder?trade_date=2026-10-10', headers=HEADERS).status_code == 422
+        assert client.get('/v1/cn/limit-up-ladder?trade_date=2026-10-10', headers=HEADERS).status_code == 404
         assert client.get('/v1/indices/CN.index.sh000001/bars?limit=2001', headers=HEADERS).status_code == 422
 
 

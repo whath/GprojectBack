@@ -135,7 +135,7 @@ def index_rows(rows, identifier, target, count=2000, quarantine=None):
     return unique_rows(result, 'trade_date')
 
 
-def collect_index(provider, identifier, day, count=2000):
+def collect_index(provider, identifier, day, count=30):
     spec = INDICES[identifier]
     target = min(day, reference_target(spec['market']))
     if spec['market']=='CN':
@@ -155,11 +155,19 @@ def collect_index(provider, identifier, day, count=2000):
     return count
 
 
-def index_report(identifier, start=None, end=None, limit=500):
+def index_report(identifier, start=None, end=None, limit=30):
     if identifier not in INDICES:
         raise HTTPException(404, 'unknown reference index')
     target = min(end or reference_target(INDICES[identifier]['market']), reference_target(INDICES[identifier]['market']))
-    data = saved('index:' + identifier, start.isoformat() if start else None, target.isoformat(), limit)
+    cursor=target
+    expected=[]
+    for _ in range(150):
+        if reference_close(INDICES[identifier]['market'],cursor) is not None:
+            expected.append(cursor.isoformat())
+        if len(expected)==30:break
+        cursor-=timedelta(days=1)
+    first=max(start.isoformat() if start else min(expected),min(expected))
+    data = saved('index:' + identifier, first, target.isoformat(), min(limit,30))
     dates = [r['trade_date'] for r in data['items']]
     return dict(data, requested_end=target.isoformat(), latest_date=max(dates, default=None),
                 stale=not dates or dates[-1] != target.isoformat())
@@ -279,7 +287,9 @@ def collect_valuation(provider, identifier, day):
 def valuation_report(identifier, end=None, limit=1):
     stock_id(identifier)
     target = min(end or latest_ready('CN', config()), latest_ready('CN', config()))
-    data = saved('valuation:' + identifier, end=target.isoformat(), limit=limit)
+    from .history import window_start
+    first=window_start('CN',target,config()).isoformat()
+    data = saved('valuation:' + identifier,start=first,end=target.isoformat(), limit=min(limit,30))
     with db.connect() as con:
         bars = {r['trade_date']: dict(r) for r in con.execute('SELECT * FROM bars WHERE instrument_id=? AND trade_date<=?', (identifier, target.isoformat()))}
     for r in data['items']:
@@ -350,7 +360,8 @@ def readiness():
     with db.connect() as con:
         return [dict(r) for r in con.execute('''SELECT f.feed_key,f.verified_at,count(p.point_key) AS stored_rows,
             min(p.point_key) AS first_key,max(p.point_key) AS last_key FROM supplemental_feeds f
-            LEFT JOIN supplemental_points p ON p.feed_key=f.feed_key GROUP BY f.feed_key ORDER BY f.feed_key''')]
+            LEFT JOIN supplemental_points p ON p.feed_key=f.feed_key WHERE f.feed_key NOT LIKE 'limit-up:%'
+            GROUP BY f.feed_key ORDER BY f.feed_key''')]
 
 
 def run(cfg, day, features, symbols=None, output=None):
