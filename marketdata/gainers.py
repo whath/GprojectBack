@@ -1,4 +1,4 @@
-"""Five exact session returns. Adjusted stock/ETF snapshots never mix vintages."""
+"""Exact session returns. Adjusted stock/ETF snapshots never mix vintages."""
 from datetime import date
 
 from . import db, normalize
@@ -15,6 +15,9 @@ def collect(cfg, target, max_items=100, scope='configured'):
         items=[dict(r) for r in con.execute("SELECT * FROM instruments WHERE market='CN' AND kind IN ('stock','etf') ORDER BY id")]
         states={r['feed_key']:r['last_attempt'] for r in con.execute("SELECT * FROM feed_attempts WHERE feed_key LIKE 'adjusted:%'")}
         available={r[0] for r in con.execute("SELECT DISTINCT instrument_id FROM bars WHERE trade_date=? AND adjustment='none'",(str(target),))}
+        tencent_etfs={r[0] for r in con.execute("SELECT DISTINCT instrument_id FROM bars WHERE instrument_id LIKE 'CN.etf.%' AND source='public/tencent-etf/v1'")}
+        import json
+        tencent_etfs|={r[0].removeprefix('adjusted:') for r in con.execute("SELECT feed_key,payload FROM feed_snapshots WHERE feed_key LIKE 'adjusted:CN.etf.%'") if json.loads(r[1]).get('source')=='public/tencent-etf/qfq/v1'}
     items=[r for r in items if scope=='catalog' or (r['id'] in available if scope=='available' else r['id'] in allowed)]
     items.sort(key=lambda r:(states.get('adjusted:'+r['id'],''),r['id']))
     provider=AKProvider(dict(cfg,request_attempts=1,request_timeout_seconds=35))
@@ -24,6 +27,16 @@ def collect(cfg, target, max_items=100, scope='configured'):
         key='adjusted:'+item['id']
         try:
             symbol=item['symbol']
+            if item['kind']=='etf' and item['id'] in tencent_etfs:
+                from .tencent_data import fetch_etf
+                from .public_feeds import PublicSource
+                rows=fetch_etf(PublicSource(cfg.get('raw_response_dir')),item,target,expected,'qfq')
+                if not rows or rows[-1]['trade_date']!=str(target):raise normalize.PendingData('adjusted ETF target close absent')
+                store(key,dict(instrument_id=item['id'],source='public/tencent-etf/qfq/v1',adjustment='qfq',
+                    basis='same-provider front-adjusted closes from one bounded fetch',target_date=str(target),window=30,
+                    items=[dict(trade_date=row['trade_date'],close=row['close']) for row in rows]))
+                results.append(dict(feature=key,status='complete',rows=len(rows)))
+                continue
             if item['kind']=='etf':
                 endpoint='fund_etf_hist_em'
                 kwargs=dict(symbol=symbol,period='daily')
@@ -51,7 +64,7 @@ def collect(cfg, target, max_items=100, scope='configured'):
     return results
 
 
-def ranking(target, cfg, kind='stock', classification='eastmoney', connection=None):
+def ranking(target, cfg, kind='stock', classification='eastmoney', connection=None, period=5, allowed_ids=None):
     from fastapi import HTTPException
     from .calendars import session_close
     if target>latest_ready('CN',cfg) or session_close('CN',target,cfg) is None:
@@ -59,7 +72,9 @@ def ranking(target, cfg, kind='stock', classification='eastmoney', connection=No
     import json
     from contextlib import nullcontext
     from .macro_assets import finite
-    expected_days=sessions('CN',target,6,cfg)
+    if period not in (5, 7):
+        raise ValueError('supported return periods are 5 and 7 market sessions')
+    expected_days=sessions('CN',target,period+1,cfg)
     board=kind in ('industry','concept')
     clauses="i.market='CN' AND i.kind=? AND COALESCE(l.status,'listed')='listed'"
     params=[kind]
@@ -68,11 +83,13 @@ def ranking(target, cfg, kind='stock', classification='eastmoney', connection=No
         params.append('BK%' if classification=='eastmoney' else 'THS_%')
     with nullcontext(connection) if connection is not None else db.connect() as con:
         instruments=[dict(r) for r in con.execute('SELECT i.*,l.listed_date FROM instruments i LEFT JOIN instrument_lifecycle l ON l.instrument_id=i.id WHERE '+clauses+' ORDER BY i.id',params)]
+        if allowed_ids is not None:
+            instruments=[item for item in instruments if item['id'] in allowed_ids]
         bars={}
         if board:
             for r in con.execute("SELECT b.* FROM bars b JOIN instruments i ON i.id=b.instrument_id WHERE i.market='CN' AND i.kind=? AND i.symbol LIKE ? AND b.trade_date>=? AND b.trade_date<=? AND b.adjustment='none'",(kind,'BK%' if classification=='eastmoney' else 'THS_%',expected_days[0],str(target))):
                 bars.setdefault(r['instrument_id'],[]).append(dict(r))
-        # Decode one source snapshot at a time and retain only six sessions.
+        # Decode one source snapshot at a time and retain only the exact window.
         # A year's data for every stock must never accumulate in API memory.
         feeds={}
         if not board:
@@ -95,7 +112,7 @@ def ranking(target, cfg, kind='stock', classification='eastmoney', connection=No
         if item.get('listed_date') and item['listed_date']>str(target):reason='not_listed_at_target'
         elif item.get('listed_date') and item['listed_date']>expected_days[0]:reason='insufficient_listed_sessions'
         elif not selected: reason='not_collected'
-        elif len(selected)!=6 or {r['trade_date'] for r in selected}!=set(expected_days):reason='missing_market_sessions'
+        elif len(selected)!=period+1 or {r['trade_date'] for r in selected}!=set(expected_days):reason='missing_market_sessions'
         elif board and len({r['source'] for r in selected})!=1:reason='mixed_source'
         elif not board and (feed.get('adjustment')!='qfq' or not feed.get('source')):reason='unqualified_adjustment'
         elif not board and item['id'] not in market_closes:reason='no_viewable_daily_bar'
@@ -117,16 +134,16 @@ def ranking(target, cfg, kind='stock', classification='eastmoney', connection=No
         rows.append(dict(id=item['id'],name=item['name'],symbol=item['symbol'],close=prices[-1] if board else quote['close'],
                          adjusted_close=prices[-1] if not board else None,close_basis='board_index' if board else 'unadjusted_market_close',
                          price_source=selected[-1]['source'] if board else quote['source'],
-                         trade_date=str(target),price_change_pct=change,change_5d_pct=change,
+                         trade_date=str(target),price_change_pct=change,**{f'change_{period}d_pct':change},
                          source=selected[-1]['source'] if board else feed['source'],
                          adjustment='none' if board else 'qfq',baseline_date=expected_days[0]))
-    rows.sort(key=lambda r:(-r['change_5d_pct'],r['id']))
+    rows.sort(key=lambda r:(-r[f'change_{period}d_pct'],r['id']))
     for rank,row in enumerate(rows,1):row['rank']=rank
     explained=sum(excluded.get(k,0) for k in ('not_listed_at_target','insufficient_listed_sessions','suspended_within_return_window'))
-    return dict(items=rows,total=len(rows),trade_date=str(target),period='5d',period_sessions=5,
+    return dict(items=rows,total=len(rows),trade_date=str(target),period=f'{period}d',period_sessions=period,
                 baseline_date=expected_days[0],required_sessions=expected_days,expected_count=len(instruments),
                 eligible_count=len(rows),excluded_count=len(instruments)-len(rows),exclusions=excluded,
                 complete=bool(instruments) and len(rows)==len(instruments),scope='collected_qualified_instruments',
                 missing_data_count=len(instruments)-len(rows)-explained,
                 classification_source=classification if board else None,
-                ranking_metric='change_5d_pct',return_basis='board_index_close' if board else 'same-provider_qfq_close')
+                ranking_metric=f'change_{period}d_pct',return_basis='board_index_close' if board else 'same-provider_qfq_close')

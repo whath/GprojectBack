@@ -38,7 +38,7 @@ def main():
     scheduled.add_argument("--year",type=int,required=True)
     scheduled.add_argument("--raw-dir",type=Path)
     context=commands.add_parser('collect-context')
-    context.add_argument('--feature',action='append',choices=['macro','calendar','policy','boards','gainers'],required=True)
+    context.add_argument('--feature',action='append',choices=['macro','calendar','policy','priority-news','boards','gainers'],required=True)
     context.add_argument('--date',type=date.fromisoformat)
     context.add_argument('--max-items',type=int,choices=range(1,501),default=10,metavar='1..500')
     context.add_argument('--scope',choices=['configured','available','catalog'],default='configured')

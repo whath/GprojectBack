@@ -23,6 +23,7 @@ def main():
     paths += [root/"docs/openapi.json", root/"docs/CONTRACT-REPAIRS-20261004.md",root/"config/deployment-status.json"]
     paths += [root/"docs/AKSHARE-CROSSCHECK-20261004.json",root/"scripts/verify_remaining_contract.py"]
     paths += [root/"docs/FREE-DATA-CONTRACT-v0.5.0.md",root/"scripts/check_supplemental_api.py"]
+    paths += [root/"docs/SEVEN-DAY-v0.6.3.md", *[root/"scripts"/name for name in ("collect_all_a.py","collect_all_etfs.py","collect_all_minutes.py","collect_focus.py")]]
     manifest=[]
     with tarfile.open(archive,"w:gz") as tar:
         for path in paths+[config_path]:

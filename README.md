@@ -1,21 +1,21 @@
-# 个人收盘数据 API · v0.6.1
+# 个人收盘数据 API · v0.6.3
 
 提供全 A 股近 **52 周日线**及兼容的近 **30 个本地市场交易日**查询，服务于个人手机和 Windows 客户端。正式 HTTPS：`https://ericcself.top`；数据接口使用 Bearer Token，`/healthz` 仅表示存活，`/readyz` 表示服务就绪。
 
-2026-10-16 已完成全 A 股 52 周扩容、原始响应对账和云端部署。后端 177 项、真实客户端 88 项、公网 HTTPS 42 项检查通过。当前契约与数据验收见 [52 周契约](docs/HISTORY-52W-v0.6.1.md) 和 [验收记录](docs/HISTORY-52W-ACCEPTANCE-20261016.md)。客户端：[GprojectApp](https://github.com/whath/GprojectApp)。
+2026-10-16 已上线 7 日榜（个股前 50、ETF 前 10）、22 个指定方向、分级原文资讯及 A 股收盘分时快照。后端 195 项测试、客户端 93 项真实 HTTPS 测试通过；公网 27 项及 9 次并发请求通过。当前契约见 [v0.6.3](docs/SEVEN-DAY-v0.6.3.md)，验收与剩余缺口见 [交付记录](docs/SEVEN-DAY-ACCEPTANCE-20261016.md)，52 周基础见 [52 周契约](docs/HISTORY-52W-v0.6.1.md)。客户端：[GprojectApp](https://github.com/whath/GprojectApp)。
 
 **定时采集、自动补采、巡检和电脑自动备份继续关闭。** 本轮仅执行有限手工采集和一次一致性备份。已有历史存档保留，API 不再排队扩大历史范围；证书自动续期保持启用。
 
 ## 当前业务范围
 
-- A 股/境内 ETF：日线、近 5 个交易日涨幅榜、龙虎榜及席位；已采集标的可查询资金和估值。
-- 东方财富行业/概念：独立 `BK` 编码、近 30 日指数行情与主力净流量、完整当前成分观测。资金口径为来源定义的大单加超大单净额，非全部现金流。
+- A 股/境内 ETF：日线、近 7 个交易日涨幅榜、龙虎榜及席位；A 股支持收盘分时快照与 52 周日线，原 `period=5d` 保持兼容。
+- 22 个指定方向：行业、概念分开；20 个东方财富方向提供行情、资金和当前成分；同花顺独立提供 AIDC、算力租赁行情，缺少同口径资金时不显示资金。稳定币暂不展示。
 - 美股：11 个标普行业 ETF 代理、12 个 AI 配置标的及 SPY，共 24 个序列；行业代理不等于全美细分行业。
 - 宏观：新浪 XAU 美元日度参考、EIA 布伦特现货、美财政部 2/10/30 年期平价收益率。
-- 华尔街见闻经济日历、国务院/人民银行/证监会/发改委/商务部的官方政策与发布列表。
+- 华尔街见闻经济日历；中央/国家部委政策；美国财政部、美联储；高盛、摩根士丹利公开投研；英伟达官方新闻及博客，均限制原发布方与发布日期。
 - 已移除连板接口和采集选项；客户端已去掉连板、信号雷达、模型分析及无界历史扩容入口。
 
-最近完整行情日期为 CN/US **2026-10-15**，板块成分为 **2026-10-16 当下观测**。A 股目录 5577 只，近 52 周窗口已按上市/停牌证据全部核对，实际有日线 5576 只、1320797 条；5 日榜 5554 只，23 个自然排除项，真实缺口 0。ETF 仍为 2/1702，行业 77/496、概念 2/508，尚未全量。全 A 股详情见 [52 周验收](docs/HISTORY-52W-ACCEPTANCE-20261016.md)。东方财富目录含来源自有层级，不与原同花顺 90 行业/15 概念作等价映射。
+最近行情日期为 CN/US **2026-10-15**，成分为 **2026-10-16 当下观测**。A 股目录 5577 只，52 周实际有日线 5576 只、1320797 条；7 日榜合格 5549，只展示前 50，28 个自然排除项（停牌22、上市不足8日5、目标日未上市1），未解释缺日为 0。境内 ETF 已遍历 1702 只，1684 只具备 8 个对齐收盘价，14 只上市时间不足，**4 只窗口仍未核实**，已排除且客户端提示“已验证样本榜”；不能称为无缺口全 ETF 榜。22 个方向行情全部可用，20 个方向有 7 日资金；A 股 5565 只收盘分时已与日线核对，另 12 只停牌或尚未上市。未自动采集 10 月 16 日行情，客户端明确显示快照日期。
 
 ## 本地启动
 
@@ -39,10 +39,12 @@ $env:API_TOKEN = & ./.venv/Scripts/python.exe -c 'import secrets; print(secrets.
 # 先按所需股票/ETF和 BK 编码编辑配置；所有日期必须是已经结束的市场交易日。
 ./.venv/Scripts/python.exe -m marketdata collect --market CN --date 2026-10-15 --refresh --raw-dir data/raw-cn
 ./.venv/Scripts/python.exe -m marketdata collect --market US --date 2026-10-15 --refresh --raw-dir data/raw-us
-# 前复权抓取单次完整快照，用于近 5 日榜；不会与不复权图表混用。
+# 前复权抓取单次完整快照，用于近 7 日榜；不会与不复权图表混用。
 ./.venv/Scripts/python.exe -m marketdata collect-context --feature gainers --scope available --max-items 120 --date 2026-10-15 --raw-dir data/raw-gainers
 ./.venv/Scripts/python.exe -m marketdata collect-context --feature boards --max-items 80 --date 2026-10-15 --raw-dir data/raw-boards
 ./.venv/Scripts/python.exe -m marketdata collect-context --feature macro --feature calendar --feature policy --raw-dir data/raw-context
+# 分级资讯先刷新国家部委列表，再采集美国原发布方。
+./.venv/Scripts/python.exe -m marketdata collect-context --feature priority-news --raw-dir data/raw-priority
 ```
 
 命令存在互斥、有限请求超时和失败状态；退出码 2 表示部分完成，旧的成功快照会保留。`--max-items` 限制单批标的数；不要把成功的一个批次当作全目录验收。当前 `automatic_collection=false`，启动 `worker` 会明确拒绝；15:10/17:10/19:10 的调度代码保留但不执行。
@@ -57,4 +59,6 @@ $env:API_TOKEN = & ./.venv/Scripts/python.exe -c 'import secrets; print(secrets.
 
 本轮检查了真实来源 → 标准化 → SQLite → 正式 HTTPS → Compose 客户端；具体计数及异地备份哈希见交付记录。无账号/积分/付费源；一次访问成功不能保证公开源的长期可用性。宏观发布日历和延迟各异，经济日历会修订，政策列表不承诺穷尽所有历史文章。
 
-更换电脑或服务器时，请按 [迁移说明](docs/MIGRATION.md) 搬迁数据库、配置和密钥。Git 仅包含代码、测试和无敏感信息的验收记录，不含行情库、私钥或生产令牌。较早交付文档均为历史快照，本版本范围以本页和 52 周契约为准。
+ETF 全目录、22 个方向、分钟快照的有限采集命令见 [v0.6.3 契约](docs/SEVEN-DAY-v0.6.3.md)。分页计算使用一致的只读事务，发布缓存时才短暂持有写锁，避免并发榜单互相阻塞。
+
+更换电脑或服务器时，请按 [迁移说明](docs/MIGRATION.md) 搬迁数据库、配置和密钥。Git 仅包含代码、测试和无敏感信息的验收记录，不含行情库、私钥或生产令牌。较早交付文档均为历史快照，本版本范围以本页和 v0.6.3 契约为准。

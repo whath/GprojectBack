@@ -14,17 +14,18 @@
     "dns_a_record": "39.96.22.254",
     "tls_certificate_expires": "2026-12-29",
     "certificate_renewal_dry_run": "passed",
-    "desktop_https": "42_52_week_checks_passed",
-    "mobile_cellular_https": "previous_user_confirmation_2026-10-15; new_APK_not_installed",
+    "desktop_https": "27_checks_and_9_concurrent_requests_passed",
+    "mobile_cellular_https": "previous_user_confirmation_2026-10-15; cellular_not_retested_for_0.6.3",
     "http_redirect_status": 301,
     "unauthorized_status": 401,
-    "public_docs_status": 404
+    "public_docs_status": 404,
+    "mobile_android_https": "0.6.3_real_device_verified"
   },
   "server_changes_performed": true,
   "runtime": {
     "checked_on": "2026-10-16",
-    "server_api_version": "0.6.1",
-    "local_api_version": "0.6.1",
+    "server_api_version": "0.6.3",
+    "local_api_version": "0.6.3",
     "history_sessions": 30,
     "worker": "inactive_disabled_by_user",
     "automatic_monitoring": "paused_by_user",
@@ -38,63 +39,38 @@
       "membership_observed": "2026-10-16"
     },
     "cn_all_stocks": true,
-    "stock_history_weeks": 52
+    "stock_history_weeks": 52,
+    "api_last_acceptance": "SEVEN-DAY-ACCEPTANCE-20261016"
   },
   "client_integration": {
     "checked_on": "2026-10-16",
-    "business_version": "0.6.1",
-    "desktop_package_version": "1.6.1",
-    "client_tests": 88,
+    "business_version": "0.6.3",
+    "desktop_package_version": "1.6.3",
+    "client_tests": 93,
     "failures": 0,
     "skipped": 0,
     "real_https_repository_and_rendering": "passed",
     "android_build": "passed",
     "windows_portable_build": "passed",
-    "android_device_install": "not_performed",
+    "android_device_install": "0.6.3_ALI-AN00_Android13_verified",
     "mobile_render_dimensions": "390x844",
     "desktop_render_dimensions": "1240x900",
-    "backend_tests": 177,
-    "public_api_checks": 42
+    "backend_tests": 195,
+    "public_api_checks": 27,
+    "concurrent_api_checks": 9,
+    "real_device_chart": {
+      "daily_bars": 241,
+      "zoomed_bars": 172,
+      "minute_points": 242,
+      "trade_date": "2026-10-15"
+    }
   },
   "coverage": {
     "date": "2026-10-15",
-    "five_session_gainers": {
-      "stock": {
-        "expected": 5577,
-        "eligible": 5554,
-        "excluded": 23,
-        "exclusions": {
-          "suspended_within_return_window": 18,
-          "insufficient_listed_sessions": 4,
-          "not_listed_at_target": 1
-        },
-        "missing_data_count": 0,
-        "complete": false
-      },
-      "etf": {
-        "eligible": 2,
-        "expected": 1702,
-        "complete": false
-      },
-      "industry": {
-        "eligible": 77,
-        "expected": 496,
-        "complete": false
-      },
-      "concept": {
-        "eligible": 2,
-        "expected": 508,
-        "complete": false
-      }
-    },
     "configured_cn_stocks": 5,
     "active_cn_stock_scope": "all_current_listed_a_shares",
     "active_cn_stocks": 5577,
     "configured_cn_etfs": 2,
-    "configured_em_boards": {
-      "industry": 77,
-      "concept": 2
-    },
     "us_series": 24,
     "macro_assets": 5,
     "macro_dates": {
@@ -104,11 +80,6 @@
       "us10y": "2026-10-15",
       "us30y": "2026-10-15"
     },
-    "calendar_events": 1575,
-    "calendar_next_week_events": 214,
-    "official_policy_source_observations": 89,
-    "current_policy_items": 45,
-    "current_membership_rows": 7398,
     "full_market_complete": false,
     "all_a_history_accounted": true,
     "all_a_window_rows": 1320797,
@@ -116,7 +87,54 @@
     "all_a_with_history": 5576,
     "all_a_window_weeks": 52,
     "all_a_window_sessions": 241,
-    "all_a_window_start": "2025-10-17"
+    "all_a_window_start": "2025-10-17",
+    "seven_session_gainers": {
+      "stock": {
+        "eligible_count": 5549,
+        "expected_count": 5577,
+        "exclusions": {
+          "suspended_within_return_window": 22,
+          "insufficient_listed_sessions": 5,
+          "not_listed_at_target": 1
+        },
+        "missing_data_count": 0
+      },
+      "etf": {
+        "eligible_count": 1684,
+        "expected_count": 1702,
+        "exclusions": {
+          "insufficient_listed_sessions": 14,
+          "missing_market_sessions": 3,
+          "not_collected": 1
+        },
+        "missing_data_count": 4
+      }
+    },
+    "focused_topics": {
+      "expected": 22,
+      "available": 22,
+      "industry": 12,
+      "concept": 10,
+      "fund_available": 20,
+      "omitted": [
+        "稳定币"
+      ]
+    },
+    "intraday_snapshots": {
+      "stocks": 5565,
+      "trade_date": "2026-10-15",
+      "naturally_excluded": 12,
+      "mode": "closed-session snapshot"
+    },
+    "priority_news": {
+      "qualified_sources": 10,
+      "rows": 82,
+      "refreshed_on": "2026-10-16"
+    },
+    "current_scope_reference": "docs/SEVEN-DAY-ACCEPTANCE-20261016.md",
+    "active_cn_etf_scope": "all_current_listed_domestic_etfs",
+    "active_cn_etf_catalog": 1702,
+    "active_board_scope": "22_focused_publisher_specific_topics"
   },
   "acceptance": {
     "raw_to_production": {
@@ -336,5 +354,54 @@
     "gold is Sina XAU CFD reference; no LBMA or official settlement assertion",
     "policy source lists are not exhaustive archives",
     "public source availability has no long-term SLA"
-  ]
+  ],
+  "manual_backup_063": {
+    "status": "passed",
+    "bytes": 663494656,
+    "sha256": "d01bc4fc52d375f6b366c672c04926438a72d7f1f33dbafc7719086f467f775e",
+    "sqlite_quick_check": "ok",
+    "automatic_backup_enabled": false
+  },
+  "historical_acceptances": {
+    "pre_0.6.3_2026-10-16": {
+      "five_session_gainers": {
+        "stock": {
+          "expected": 5577,
+          "eligible": 5554,
+          "excluded": 23,
+          "exclusions": {
+            "suspended_within_return_window": 18,
+            "insufficient_listed_sessions": 4,
+            "not_listed_at_target": 1
+          },
+          "missing_data_count": 0,
+          "complete": false
+        },
+        "etf": {
+          "eligible": 2,
+          "expected": 1702,
+          "complete": false
+        },
+        "industry": {
+          "eligible": 77,
+          "expected": 496,
+          "complete": false
+        },
+        "concept": {
+          "eligible": 2,
+          "expected": 508,
+          "complete": false
+        }
+      },
+      "configured_em_boards": {
+        "industry": 77,
+        "concept": 2
+      },
+      "calendar_events": 1575,
+      "calendar_next_week_events": 214,
+      "official_policy_source_observations": 89,
+      "current_policy_items": 45,
+      "current_membership_rows": 7398
+    }
+  }
 }

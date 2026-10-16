@@ -16,30 +16,38 @@ def page(key, offset, limit, load, identity="", refresh=False, snapshot_id=None)
     if snapshot_id and refresh:
         raise HTTPException(422, "snapshot_id and refresh cannot be combined")
     now = datetime.now(timezone.utc)
+    # Build a consistent read snapshot without reserving the single SQLite
+    # writer. Full-universe rankings can take seconds on the small server;
+    # an unrelated concurrent ranking must not time out waiting to write.
     with db.connect() as con:
-        con.execute("BEGIN IMMEDIATE")
+        con.execute("BEGIN")
         saved = con.execute("SELECT * FROM query_snapshots WHERE cache_key=?", (cache_key,)).fetchone()
         if saved is None and (offset or snapshot_id):
             raise HTTPException(409, "pagination snapshot unavailable; restart at offset=0")
         expired = saved is not None and datetime.fromisoformat(saved["expires_at"]) <= now
         if expired and (offset or snapshot_id):
             raise HTTPException(409, "pagination snapshot expired; restart at offset=0")
-        if saved is None or expired or (refresh and offset == 0):
+        rebuilt=saved is None or expired or (refresh and offset == 0)
+        if rebuilt:
             payload = load(con)
             payload["snapshot_id"] = hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-            saved_payload = json.dumps(payload, ensure_ascii=False, allow_nan=False)
+        else:
+            payload = json.loads(saved["payload"])
+    saved_payload=json.dumps(payload,ensure_ascii=False,allow_nan=False)
+    now=datetime.now(timezone.utc)
+    with db.connect() as con:
+        con.execute("BEGIN IMMEDIATE")
+        if rebuilt:
             con.execute("DELETE FROM query_snapshots WHERE expires_at<?", ((now-timedelta(days=1)).isoformat(),))
             con.execute("INSERT OR REPLACE INTO query_snapshots VALUES(?,?,?)",
                         (cache_key, saved_payload, (now + timedelta(minutes=30)).isoformat()))
             con.execute("INSERT OR REPLACE INTO query_snapshots VALUES(?,?,?)",
                         (version_key(payload["snapshot_id"]),saved_payload,(now+timedelta(minutes=30)).isoformat()))
-        else:
-            payload = json.loads(saved["payload"])
         # Active scans retain their version; expiry is based on inactivity.
         con.execute("UPDATE query_snapshots SET expires_at=? WHERE cache_key=?",
                     ((now + timedelta(minutes=30)).isoformat(), cache_key))
         con.execute("INSERT OR IGNORE INTO query_snapshots VALUES(?,?,?)",
-                    (version_key(payload["snapshot_id"]),json.dumps(payload,ensure_ascii=False,allow_nan=False),
+                    (version_key(payload["snapshot_id"]),saved_payload,
                      (now+timedelta(minutes=30)).isoformat()))
         con.execute("UPDATE query_snapshots SET expires_at=? WHERE cache_key=?",
                     ((now+timedelta(minutes=30)).isoformat(),version_key(payload["snapshot_id"])))

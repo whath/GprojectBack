@@ -36,8 +36,8 @@ async def lifespan(app):
     yield
 
 
-app=FastAPI(title="Personal EOD Market API",version="0.6.1",lifespan=lifespan,
-            description="个人收盘数据：A股支持近52周日线，兼容30日请求；5日涨幅、板块资金、龙虎榜、美股观察、日度宏观、日历与政策。自动采集默认关闭。")
+app=FastAPI(title="Personal EOD Market API",version="0.6.3",lifespan=lifespan,
+            description="个人收盘数据：A股52周日线、收盘分时快照；7日涨幅、22个关注方向、板块资金、龙虎榜、美股观察、日度宏观、分级资讯。兼容5日旧请求。自动采集默认关闭。")
 
 if config().get("cors_origins"):
     app.add_middleware(CORSMiddleware,allow_origins=config()["cors_origins"],allow_methods=["GET"],
@@ -210,18 +210,23 @@ def bars(instrument_id:str,start:date|None=None,end:date|None=None,limit:int|Non
 @app.get("/v1/cn/rankings",dependencies=[Depends(authorize)])
 def rankings(kind:Literal["stock","etf","industry","concept"]="industry",trade_date:date|None=None,limit:int=Query(50,ge=1,le=500),
              metric:Literal["price_change_pct","change_pct"]="price_change_pct",
-             classification_source:Literal["ths","eastmoney"]|None=None,period:Literal['1d','5d']='1d',
+             classification_source:Literal["ths","eastmoney"]|None=None,period:Literal['1d','5d','7d']='1d',
+             top:int|None=Query(None,ge=1,le=50),
              offset:int=Query(0,ge=0),refresh:bool=False,snapshot_id:str|None=Query(None,pattern=r'^[a-f0-9]{64}$'),request:Request=None):
     day=chosen_day("CN",trade_date)
     cfg=config()
-    if period=='5d':
+    if period in ('5d','7d'):
         from .gainers import ranking
         source=classification_source or cfg.get('cn_sources',{}).get('boards','eastmoney')
         def load(con):
-            try:return ranking(date.fromisoformat(day),cfg,kind,source,con)
+            try:
+                result=ranking(date.fromisoformat(day),cfg,kind,source,con,period=int(period[:-1]))
+                if top is not None:
+                    result=dict(result,items=result['items'][:top],total=min(top,result['total']),display_limit=top)
+                return result
             except (ValueError,KeyError,TypeError):
                 raise HTTPException(503,'stored gainers data failed validation') from None
-        return snapshot_page(['gainers',kind,day,source],offset,limit,
+        return snapshot_page(['gainers',kind,day,source,period,top],offset,limit,
                              load,
                              request.headers.get('authorization',''),refresh,snapshot_id)
     previous=date.fromisoformat(day)-timedelta(days=1)
@@ -381,14 +386,17 @@ def economic_calendar(trade_date:date|None=None,start:date|None=None,end:date|No
 def capabilities():
     from importlib.metadata import version
     from .availability import report as availability_report
-    return {"provider":"mixed_public_sources","version":"0.6.1","akshare_version":version("akshare"),
+    return {"provider":"mixed_public_sources","version":"0.6.3","akshare_version":version("akshare"),
             "stock_funds":{"implemented":True,"source":"stock_individual_fund_flow",
                            "transport":config().get("funds_transport","curl_cffi"),
                            "historical_limit":"provider recent window (documented ~100; 120 observed); stored history accumulates"},
             "history_window_sessions":30,
             "stock_history_weeks":config().get('stock_history_weeks',0),
             "board_funds":{"implemented":True,"classification_source":"eastmoney","endpoint":"/v1/cn/boards/{board_id}/flows"},
-            "gainers":{"implemented":True,"period":"5d","stock_etf_basis":"qfq","endpoint":"/v1/cn/rankings?period=5d"},
+            "gainers":{"implemented":True,"period":"7d","legacy_period":"5d","stock_etf_basis":"qfq","display_limits":{"stock":50,"etf":10},"endpoint":"/v1/cn/rankings?period=7d"},
+            "focused_topics":{"implemented":True,"count":22,"endpoint":"/v1/focus-boards"},
+            "intraday_snapshots":{"implemented":True,"mode":"stored closed-session observations","endpoint":"/v1/intraday/{instrument_id}"},
+            "priority_news":{"implemented":True,"endpoint":"/v1/priority-news","policy":"exact original issuer allowlist"},
             "events":{"news":True,"scheduled_calendar":True,"scheduled_coverage":"official FOMC meetings; date precision only",
                       "scheduled_endpoint":"/v1/scheduled-events","coverage":"configured keyword search only",
                       "economic_facts":True,"economic_source":"wallstreetcn","economic_endpoint":"/v1/economic-calendar"},
@@ -440,6 +448,32 @@ def data_overview():
     return report(config())
 
 
+@app.get('/v1/focus-boards',dependencies=[Depends(authorize)])
+def focused_boards(trade_date:date|None=None):
+    from .focus_boards import report
+    return report(date.fromisoformat(chosen_day('CN',trade_date)),config())
+
+
+@app.get('/v1/intraday/{instrument_id}',dependencies=[Depends(authorize)])
+def instrument_intraday(instrument_id:str,trade_date:date):
+    from .intraday import report
+    return report(instrument_id,trade_date,config())
+
+
+@app.get('/v1/priority-news',dependencies=[Depends(authorize)])
+def priority_news(start:date|None=None,end:date|None=None,region:Literal['CN','US']|None=None,
+                  level:Literal['central','ministry','central_bank','government','research','company']|None=None,
+                  limit:int=Query(100,ge=1,le=500),offset:int=Query(0,ge=0)):
+    from .priority_news import report
+    from .history import window_start
+    from .calendars import CN
+    from datetime import datetime
+    last=end or datetime.now(CN).date()
+    first=start or window_start('CN',latest_ready('CN',config()),config())
+    result=report(first,last,region,level)
+    return dict(result,items=result['items'][offset:offset+limit])
+
+
 @app.get('/v1/macro/assets/{asset_id}/history',dependencies=[Depends(authorize)])
 def macro_history(asset_id:str,limit:int=Query(30,ge=1,le=30)):
     from .macro_assets import history
@@ -461,13 +495,13 @@ def policy_news(start:date|None=None,end:date|None=None,publisher:Literal['gov',
 
 
 @app.get('/v1/cn/fund-rankings',dependencies=[Depends(authorize)])
-def fund_rankings(request:Request,kind:Literal['industry','concept']='industry',period:Literal['1d','5d']='1d',
+def fund_rankings(request:Request,kind:Literal['industry','concept']='industry',period:Literal['1d','5d','7d']='1d',
                   trade_date:date|None=None,limit:int=Query(50,ge=1,le=500),offset:int=Query(0,ge=0),refresh:bool=False,
                   snapshot_id:str|None=Query(None,pattern=r'^[a-f0-9]{64}$')):
     from .board_data import ranking
     day=chosen_day('CN',trade_date)
     return snapshot_page(['fund-rankings',kind,period,day],offset,limit,
-                         lambda con:ranking(date.fromisoformat(day),kind,5 if period=='5d' else 1),
+                         lambda con:ranking(date.fromisoformat(day),kind,int(period[:-1])),
                          request.headers.get('authorization',''),refresh,snapshot_id)
 
 

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Personal EOD Market API",
-    "description": "个人收盘数据：A股支持近52周日线，兼容30日请求；5日涨幅、板块资金、龙虎榜、美股观察、日度宏观、日历与政策。自动采集默认关闭。",
-    "version": "0.6.1"
+    "description": "个人收盘数据：A股52周日线、收盘分时快照；7日涨幅、22个关注方向、板块资金、龙虎榜、美股观察、日度宏观、分级资讯。兼容5日旧请求。自动采集默认关闭。",
+    "version": "0.6.3"
   },
   "paths": {
     "/healthz": {
@@ -793,11 +793,30 @@
             "schema": {
               "enum": [
                 "1d",
-                "5d"
+                "5d",
+                "7d"
               ],
               "type": "string",
               "default": "1d",
               "title": "Period"
+            }
+          },
+          {
+            "name": "top",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 50,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Top"
             }
           },
           {
@@ -1868,6 +1887,242 @@
         ]
       }
     },
+    "/v1/focus-boards": {
+      "get": {
+        "summary": "Focused Boards",
+        "operationId": "focused_boards_v1_focus_boards_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "trade_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Trade Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/intraday/{instrument_id}": {
+      "get": {
+        "summary": "Instrument Intraday",
+        "operationId": "instrument_intraday_v1_intraday__instrument_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "instrument_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Instrument Id"
+            }
+          },
+          {
+            "name": "trade_date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Trade Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/priority-news": {
+      "get": {
+        "summary": "Priority News",
+        "operationId": "priority_news_v1_priority_news_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "CN",
+                    "US"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Region"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "central",
+                    "ministry",
+                    "central_bank",
+                    "government",
+                    "research",
+                    "company"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Level"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/macro/assets/{asset_id}/history": {
       "get": {
         "summary": "Macro History",
@@ -2087,7 +2342,8 @@
             "schema": {
               "enum": [
                 "1d",
-                "5d"
+                "5d",
+                "7d"
               ],
               "type": "string",
               "default": "1d",

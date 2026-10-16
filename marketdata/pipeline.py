@@ -123,6 +123,16 @@ class Collector:
             start = self.day - timedelta(days=self.cfg["history_days"])
         if requested:
             start = min(start, date.fromisoformat(requested["start_date"]))
+        if item['kind']=='etf' and sources=={'public/tencent-etf/v1'}:
+            from .tencent_data import fetch_etf
+            from .public_feeds import PublicSource
+            from .history import sessions
+            raw=fetch_etf(PublicSource(self.cfg.get('raw_response_dir')),item,self.day,
+                          sessions('CN',self.day,self.cfg.get('history_sessions',30),self.cfg))
+            for row in raw:row['source']='public/tencent-etf/v1'
+            db.put_bars(item['id'],raw)
+            if not raw or raw[-1]['trade_date']!=str(self.day):raise normalize.PendingData('ETF target daily close absent')
+            return raw
         # Extend short history before entering the recent-revision mode.
         if latest and not requested and not self.refresh and earliest <= start.isoformat():
             start = max(start, date.fromisoformat(latest) - timedelta(days=10))

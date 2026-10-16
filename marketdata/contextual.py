@@ -16,6 +16,10 @@ def run(cfg, features, day=None, max_items=10, scope='configured', all_boards=Fa
         if 'macro' in features:results.extend(macro_assets.collect(source))
         if 'calendar' in features:results.append(calendar_feed.collect(source,cfg))
         if 'policy' in features:results.extend(policy_news.collect(source,cfg))
+        if 'priority-news' in features:
+            from . import priority_news
+            if 'policy' not in features:results.extend(policy_news.collect(source,cfg))
+            results.extend(priority_news.collect(source,cfg))
         if 'boards' in features:
             try:results.extend(board_data.collect(source,cfg,day,max_items,all_boards=all_boards))
             except Exception as exc:results.append(dict(feature='boards',status='failed',error=type(exc).__name__))
