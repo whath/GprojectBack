@@ -1,0 +1,118 @@
+{
+  "status": "accepted",
+  "target": "2026-10-15",
+  "calendar_weeks": 52,
+  "calendar_start": "2025-10-17",
+  "sessions": 241,
+  "catalog": 5577,
+  "stocks_with_history": 5576,
+  "stock_window_rows": 1320797,
+  "full_session_count": 4957,
+  "recent_listings": 162,
+  "verified_halt_stocks": 458,
+  "not_listed_at_target": [
+    {
+      "id": "CN.stock.920196",
+      "symbol": "920196",
+      "name": "N南乳",
+      "listed_date": "2026-10-16"
+    }
+  ],
+  "unexplained_stock_days": 0,
+  "source_reconciliation": {
+    "status": "passed",
+    "counts": {
+      "raw_rows": 1297682,
+      "raw_fields": 10381456,
+      "qfq_closes": 1320818,
+      "evidence_files": 11008,
+      "sha256_verified": 11008
+    },
+    "basis": "per-instrument bounded memory verification of retained adapter responses, hashes, stored raw fields and same-fetch adjusted closes"
+  },
+  "database": {
+    "restore_verified": true,
+    "sha256": "073648fe254801b0d2581ea65df09a439a10c487d54c1b440285b0c64c99c350",
+    "bytes": 390201344,
+    "rows": {
+      "instruments": 8772,
+      "bars": 1331079,
+      "datasets": 19065,
+      "feed_snapshots": 5674,
+      "supplemental_points": 21492
+    },
+    "stocks_with_history": 5576,
+    "stock_window_rows": 1320797
+  },
+  "pc_acceptance": {
+    "pc_restore": "passed",
+    "sha256": "073648fe254801b0d2581ea65df09a439a10c487d54c1b440285b0c64c99c350",
+    "bytes": 390201344,
+    "independent_52_week_stock_audits": 5577,
+    "unexplained_stock_days": 0,
+    "public_ranking_rows_compared_with_backup": 5554,
+    "client_tests": {
+      "tests": 88,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "production": {
+    "source_files_matched": 38,
+    "plan": {
+      "target": "2026-10-15",
+      "first": "2025-10-17",
+      "window_weeks": 52,
+      "window_sessions": 241,
+      "catalog": 5577,
+      "already_accounted": 5577,
+      "pending": 0,
+      "batch_limit": 10000
+    },
+    "worker": "inactive",
+    "worker_enabled": "disabled",
+    "certificate_renewal": "enabled",
+    "service": [
+      "NRestarts=0",
+      "MemoryCurrent=285831168",
+      "MemoryPeak=325189632",
+      "MemoryMax=402653184",
+      "ActiveState=active"
+    ]
+  },
+  "beijing_crosscheck": {
+    "status": "passed",
+    "stock": "920779",
+    "sessions": 241,
+    "OHLC_fields_compared": 964,
+    "max_price_difference": 0,
+    "price_tolerance": 0.01,
+    "max_volume_difference_shares": 50.0,
+    "source_pair": [
+      "akshare/sina stored raw daily",
+      "Tencent original unadjusted daily"
+    ],
+    "basis": "independent publisher check; numeric differences retained, no overwrite"
+  },
+  "public_https": {
+    "checks": 42,
+    "ranked_stocks": 5554,
+    "missing_data_count": 0,
+    "maximum_request_seconds": 3.047
+  },
+  "backend_tests": 177,
+  "client_tests": 88,
+  "artifacts": {
+    "Gproject-Android-v0.6.1.apk": {
+      "bytes": 18943950,
+      "sha256": "ba371747de085c080ef5212e68d7393ffe651d597a6fcd9b7fbe7e0c42fa1647"
+    },
+    "Gproject-Windows-v0.6.1.zip": {
+      "bytes": 96705546,
+      "sha256": "ae647f170c94836501893b284049a7d8eabf8993ab769799e243958895497ff0"
+    }
+  },
+  "automatic_jobs": false,
+  "scope": "current A-share pool raw daily prices; other datasets retain existing windows"
+}

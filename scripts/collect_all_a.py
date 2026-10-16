@@ -8,23 +8,26 @@ import requests
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from marketdata import db,normalize
 from marketdata.calendars import validate_collection
-from marketdata.history import sessions
+from marketdata.history import sessions,week_sessions
 from marketdata.pipeline import CollectorLock
 from marketdata.provider import adapt_frame
 from marketdata.public_feeds import store
 from marketdata.settings import config
 import akshare as ak
 
-parser=argparse.ArgumentParser(description='Finite, resumable 30-session A-share collection; never enables a scheduler')
+parser=argparse.ArgumentParser(description='Finite, resumable A-share collection; never enables a scheduler')
 parser.add_argument('--date',type=date.fromisoformat,required=True)
 parser.add_argument('--output',type=Path)
 parser.add_argument('--workers',type=int,choices=[1,2,3,4],default=2)
 parser.add_argument('--budget',type=int,default=7200)
 parser.add_argument('--max-items',type=int,default=10000)
 parser.add_argument('--plan-only',action='store_true')
+parser.add_argument('--weeks',type=int,choices=[52],help='52 calendar weeks; omission retains the 30-session mode')
+parser.add_argument('--symbols',help='Optional comma-separated six-digit symbols for a finite canary')
 args=parser.parse_args()
 if not 60<=args.budget<=14400 or not 1<=args.max_items<=10000:parser.error('budget must be 60..14400 and max-items 1..10000')
-cfg=config();target=args.date;days=sessions('CN',target,30,cfg);dayset=set(days)
+cfg=config();target=args.date;days=week_sessions('CN',target,args.weeks,cfg) if args.weeks else sessions('CN',target,30,cfg);dayset=set(days)
+scope='all_a_52w_manual' if args.weeks else 'all_a_30_manual'
 validate_collection('CN',target,cfg);started=time.monotonic();max_seconds=args.budget
 from marketdata.lifecycle import report as directory_report
 directory=directory_report()
@@ -50,8 +53,12 @@ def pooled_get(url,**kwargs):
     # adjustment flag and parser can serve a bounded recent window instead.
     if '/newfqkline/get' in url:
         params=dict(kwargs.get('params',{}));values=params['param'].split(',')
-        params['param']=','.join([values[0],'day',days[0],str(target),'40',values[-1]])
+        params['param']=','.join([values[0],'day',days[0],str(target),str(len(days)+10),values[-1]])
         kwargs['params']=params
+        # SDK loops over two years. Identical bounded parameters within this
+        # one fetch must reuse the same response, including qfq vintage.
+        key=params['param']
+        if getattr(local,'last_key',None)==key:return local.last_reply
     kwargs['timeout']=(5,15)
     reply=local.session.get(url,**kwargs);reply.raise_for_status()
     if '/newfqkline/get' in url:
@@ -59,6 +66,7 @@ def pooled_get(url,**kwargs):
         text=reply.text;pos=text.find('={');payload=json.loads(text[pos+1:] if pos>=0 else text)
         symbol=kwargs['params']['param'].split(',')[0]
         if payload.get('code')!=0 or symbol not in payload.get('data',{}):raise ValueError('Tencent response identity mismatch')
+        local.last_key=key;local.last_reply=reply
     with counter_lock:http_count+=1
     time.sleep(.12)
     return reply
@@ -71,30 +79,37 @@ with db.connect() as con:
         actual.setdefault(row[0],set()).add(row[1]);profiles.setdefault(row[0],set()).add(row[2])
     for identifier,publisher in con.execute("SELECT DISTINCT instrument_id,source FROM bars WHERE instrument_id LIKE 'CN.stock.%' AND adjustment='none'"):
         profiles.setdefault(identifier,set()).add(publisher)
-    adjusted={row[0]:json.loads(row[1]) for row in con.execute("SELECT feed_key,payload FROM feed_snapshots WHERE feed_key LIKE 'adjusted:CN.stock.%' AND status='complete'")}
-    previous={row[0]:row[1] for row in con.execute("SELECT task_key,attempts FROM tasks WHERE market='CN' AND trade_date=? AND scope='all_a_30_manual'",(str(target),))}
+    adjusted={}
+    for row in con.execute("SELECT feed_key,payload FROM feed_snapshots WHERE feed_key LIKE 'adjusted:CN.stock.%' AND status='complete'"):
+        feed=json.loads(row[1]);adjusted[row[0]]={'dates':{r['trade_date'] for r in feed.get('items',[])},'target_date':feed.get('target_date')}
+    previous={row[0]:row[1] for row in con.execute("SELECT task_key,attempts FROM tasks WHERE market='CN' AND trade_date=? AND scope=?",(str(target),scope))}
     suspended={}
     for symbol,day in con.execute("SELECT symbol,trade_date FROM datasets WHERE dataset='suspensions' AND market='CN' AND trade_date>=? AND trade_date<=?",(days[0],str(target))):
         suspended.setdefault(symbol,set()).add(day)
 
 def needs_capture(item):
     required={d for d in days if not item['listed_date'] or d>=item['listed_date']}-suspended.get(item['symbol'],set())
-    points=adjusted.get('adjusted:'+item['id'],{}).get('items',[])
-    return bool(required-actual.get(item['id'],set()) or required-{r['trade_date'] for r in points})
+    return bool(required-actual.get(item['id'],set()) or required-adjusted.get('adjusted:'+item['id'],{}).get('dates',set()))
 
 universe_size=len(items)
+if args.symbols:
+    requested=set(args.symbols.split(','))
+    if not all(len(s)==6 and s.isdigit() for s in requested):parser.error('symbols must be six-digit codes')
+    items=[item for item in items if item['symbol'] in requested]
+    if len(items)!=len(requested):parser.error('symbol is absent from the verified current A-share catalog')
+    universe_size=len(items)
 candidates=[item for item in items if needs_capture(item)]
 candidates.sort(key=lambda item:(max(previous.get('bar:'+item['id'],0),previous.get('adjusted:'+item['id'],0)),item['id']))
 pending_ids={item['id'] for item in candidates}
 already_complete=universe_size-len(candidates)
 if args.plan_only:
-    print(json.dumps({'target':str(target),'catalog':universe_size,'already_accounted':already_complete,'pending':len(candidates),'batch_limit':args.max_items}));raise SystemExit(0)
+    print(json.dumps({'target':str(target),'first':days[0],'window_weeks':args.weeks,'window_sessions':len(days),'catalog':universe_size,'already_accounted':already_complete,'pending':len(candidates),'batch_limit':args.max_items}));raise SystemExit(0)
 items=candidates[:args.max_items]
 
 results=[]
 def evidence(item,adjust,endpoint,kwargs,rows):
     payload={'instrument_id':item['id'],'endpoint':endpoint,'kwargs':kwargs,'rows':rows,'captured_at':db.now_iso(),
-             'window_sessions':30,'transport':'pooled bounded same-publisher AKShare parser'}
+             'window_sessions':len(days),'window_weeks':args.weeks,'transport':'pooled bounded same-publisher AKShare parser'}
     encoded=json.dumps(payload,ensure_ascii=False,allow_nan=False).encode()
     file=rawdir/(item['symbol']+'-'+('qfq' if adjust else 'raw')+'.json.gz')
     file.write_bytes(gzip.compress(encoded));return hashlib.sha256(encoded).hexdigest()
@@ -105,7 +120,7 @@ def capture(item):
     if time.monotonic()-started>max_seconds:return {'id':identifier,'status':'budget_deferred'}
     key='adjusted:'+identifier;feed=adjusted.get(key,{})
     need_raw=bool(expected-actual.get(identifier,set()))
-    need_qfq=feed.get('target_date')!=str(target) or bool(expected-{r['trade_date'] for r in feed.get('items',[])})
+    need_qfq=feed.get('target_date')!=str(target) or bool(expected-feed.get('dates',set()))
     if not need_raw and not need_qfq:return {'id':identifier,'status':'already_complete','raw_rows':len(expected)}
     outcomes=[]
     for adjust,needed in [('',need_raw),('qfq',need_qfq)]:
@@ -126,7 +141,7 @@ def capture(item):
             if not rows:raise normalize.PendingData('no observations in requested session window')
             if adjust:
                 store(key,dict(instrument_id=identifier,source='akshare/'+endpoint+'/qfq/v1',adjustment='qfq',
-                    basis='same-provider front-adjusted closes from one fetch',target_date=str(target),window=30,
+                    basis='same-provider front-adjusted closes from one fetch',target_date=str(target),window=len(days),window_weeks=args.weeks,
                     items=[{'trade_date':r['trade_date'],'close':r['close']} for r in rows]))
             else:
                 for row in rows:row['source']='akshare/sina' if sina else 'akshare/tencent'
@@ -140,14 +155,14 @@ def capture(item):
             if adjust:db.feed_attempt(key,'failed',type(exc).__name__)
             outcomes.append({'part':'qfq' if adjust else 'raw','status':status,'error':message})
         with db.connect() as con:
-            con.execute("INSERT INTO tasks(market,trade_date,scope,task_key,status,row_count,attempts,message,updated_at) VALUES('CN',?,'all_a_30_manual',?,?,?,1,?,?) ON CONFLICT(market,trade_date,scope,task_key) DO UPDATE SET status=excluded.status,row_count=excluded.row_count,attempts=attempts+1,message=excluded.message,updated_at=excluded.updated_at",
-                        (str(target),task_key,status,outcomes[-1].get('rows',0),message,db.now_iso()))
+            con.execute("INSERT INTO tasks(market,trade_date,scope,task_key,status,row_count,attempts,message,updated_at) VALUES('CN',?,?,?,?,?,1,?,?) ON CONFLICT(market,trade_date,scope,task_key) DO UPDATE SET status=excluded.status,row_count=excluded.row_count,attempts=attempts+1,message=excluded.message,updated_at=excluded.updated_at",
+                        (str(target),scope,task_key,status,outcomes[-1].get('rows',0),message,db.now_iso()))
     return {'id':identifier,'status':'complete' if all(o['status']=='complete' for o in outcomes) else 'partial','parts':outcomes,'seconds':round(time.monotonic()-begin,3)}
 
 def checkpoint():
     statuses={}
     for result in results:statuses[result['status']]=statuses.get(result['status'],0)+1
-    result={'phase':'collecting','target':str(target),'expected':universe_size,'batch_size':len(items),'already_accounted':already_complete,'processed':len(results),'statuses':statuses,'http_requests':http_count,
+    result={'phase':'collecting','target':str(target),'first':days[0],'window_weeks':args.weeks,'window_sessions':len(days),'expected':universe_size,'batch_size':len(items),'already_accounted':already_complete,'processed':len(results),'statuses':statuses,'http_requests':http_count,
             'elapsed_seconds':round(time.monotonic()-started,1),'updated_at':db.now_iso(),'workers':args.workers,'automatic_jobs_enabled':False}
     temp=root/'progress.tmp';temp.write_text(json.dumps(result,ensure_ascii=False,indent=2));temp.replace(root/'progress.json')
     return result

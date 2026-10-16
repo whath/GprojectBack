@@ -19,7 +19,7 @@ def report(cfg, now=None):
             min(b.trade_date) AS first_date,max(b.trade_date) AS latest_date FROM instruments i
             LEFT JOIN bars b ON b.instrument_id=i.id AND b.adjustment='none' AND b.trade_date>=? AND b.trade_date<=?
             WHERE i.market='CN' AND i.kind='stock' GROUP BY i.id''', (first,targets['CN']))]
-        snapshots = {r['feed_key']: dict(r) for r in con.execute('SELECT * FROM feed_snapshots')}
+        snapshots = {r['feed_key']: dict(r) for r in con.execute('SELECT feed_key,verified_at FROM feed_snapshots')}
     funds = []
     from .funds import report as funds_report
     for symbol in cfg['cn_stocks']:
@@ -59,6 +59,7 @@ def report(cfg, now=None):
                 configured_coverage={m: coverage(m, targets[m], cfg) for m in targets},
                 cn_stock_history=dict(catalog_count=len(history), with_any_history=sum(r['stored_bars'] > 0 for r in history),
                     window_sessions=30,with_at_least_30_bars=sum(r['stored_bars'] >= 30 for r in history),
+                    optional_window_weeks=cfg.get('stock_history_weeks',0),
                     configured=[r for r in history if r['id'] in configured],
                     basis='stored unadjusted row counts; calendar completeness requires /v1/history-coverage/{id}'),
                 configured_stock_funds=dict(expected=len(funds), current=sum(r['status'] == 'current' for r in funds), items=funds),
@@ -67,7 +68,7 @@ def report(cfg, now=None):
                 policy_news=dict(implemented=True,collected_sources=[k.split(':',1)[1] for k in snapshots if k.startswith('policy:')]),
                 macro_assets=dict(implemented=True,collected_assets=[k.split(':',1)[1] for k in snapshots if k.startswith('macro:')]),
                 gainers=dict(implemented=True,qualified_adjusted_snapshots=sum(k.startswith('adjusted:') for k in snapshots)),
-                source_limits=['history and coverage target is 30 local market sessions',
+                source_limits=['default history is 30 sessions; A-share 52 calendar weeks is an explicit price-history option when enabled',
                                'board membership is a current observation, not historical membership',
                                'policy news covers observed official lists, not an exhaustive archive',
                                'macro publication calendars and release delays differ'],

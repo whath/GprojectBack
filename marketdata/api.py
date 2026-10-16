@@ -36,8 +36,8 @@ async def lifespan(app):
     yield
 
 
-app=FastAPI(title="Personal EOD Market API",version="0.6.0",lifespan=lifespan,
-            description="个人近 30 个交易日收盘数据：5 日涨幅、东方财富板块资金、龙虎榜、美股观察、日度宏观、经济日历与官方政策。自动采集默认关闭。")
+app=FastAPI(title="Personal EOD Market API",version="0.6.1",lifespan=lifespan,
+            description="个人收盘数据：A股支持近52周日线，兼容30日请求；5日涨幅、板块资金、龙虎榜、美股观察、日度宏观、日历与政策。自动采集默认关闭。")
 
 if config().get("cors_origins"):
     app.add_middleware(CORSMiddleware,allow_origins=config()["cors_origins"],allow_methods=["GET"],
@@ -133,10 +133,12 @@ def instruments(request:Request,market:Literal["CN","US"]|None=None,kind:Literal
     clauses=["(i.symbol LIKE ? OR i.name LIKE ?)","COALESCE(l.status,'listed')='listed'"]
     args=[f"%{search}%",f"%{search}%"]
     if available_only:
-        from .history import window_start
-        first=min(window_start(m,latest_ready(m,config()),config()).isoformat() for m in ('CN','US'))
-        clauses.append("EXISTS(SELECT 1 FROM bars b WHERE b.instrument_id=i.id AND b.adjustment='none' AND b.trade_date>=?)")
-        args.append(first)
+        from .history import window_start,week_sessions
+        cfg=config()
+        first=min(window_start(m,latest_ready(m,cfg),cfg).isoformat() for m in ('CN','US'))
+        stock_first=week_sessions('CN',latest_ready('CN',cfg),52,cfg)[0] if cfg.get('stock_history_weeks')==52 else first
+        clauses.append("EXISTS(SELECT 1 FROM bars b WHERE b.instrument_id=i.id AND b.adjustment='none' AND b.trade_date>=CASE WHEN i.market='CN' AND i.kind='stock' THEN ? ELSE ? END)")
+        args.extend((stock_first,first))
     for field,value in (("market",market),("kind",kind)):
         if value:
             clauses.append("i."+field+"=?")
@@ -164,7 +166,7 @@ def instruments(request:Request,market:Literal["CN","US"]|None=None,kind:Literal
 
 
 @app.get("/v1/bars/{instrument_id}",dependencies=[Depends(authorize)])
-def bars(instrument_id:str,start:date|None=None,end:date|None=None,limit:int=Query(30,ge=1,le=2000)):
+def bars(instrument_id:str,start:date|None=None,end:date|None=None,limit:int|None=Query(None,ge=1,le=2000),weeks:int|None=Query(None,ge=52,le=52)):
     if start and end and start>end:
         raise HTTPException(422,"start must not follow end")
     with db.connect() as con:
@@ -172,13 +174,17 @@ def bars(instrument_id:str,start:date|None=None,end:date|None=None,limit:int=Que
         if not item:
             raise HTTPException(404,"unknown instrument")
         cutoff=min(end.isoformat() if end else chosen_day(item["market"],None),chosen_day(item["market"],None))
-        from .history import window_start
+        from .history import sessions,week_sessions
+        cfg=config()
+        if weeks and (item['market']!='CN' or item['kind']!='stock' or cfg.get('stock_history_weeks')!=52):
+            raise HTTPException(422,'52-week history is enabled only for A-share stocks')
         try:
-            first=window_start(item['market'],date.fromisoformat(cutoff),config()).isoformat()
+            window=week_sessions(item['market'],date.fromisoformat(cutoff),weeks,cfg) if weeks else sessions(item['market'],date.fromisoformat(cutoff),cfg.get('history_sessions',30),cfg)
+            first=window[0]
         except ValueError:
             raise HTTPException(422,'date is outside the supported calendar range') from None
         effective_start=max(start.isoformat() if start else first,first)
-        limit=min(limit,30)
+        limit=min(limit if limit is not None else len(window),len(window))
         rows=[dict(r) for r in con.execute('''SELECT * FROM bars WHERE instrument_id=? AND trade_date>=?
           AND trade_date<=? AND adjustment='none' ORDER BY trade_date DESC LIMIT ?''',
           (instrument_id,effective_start,cutoff,limit))]
@@ -198,7 +204,7 @@ def bars(instrument_id:str,start:date|None=None,end:date|None=None,limit:int=Que
         except ValueError:
             raise HTTPException(422,"date is outside the supported calendar range") from None
     return {"instrument":dict(item),"adjustment":"none","items":list(reversed(rows)),"task_status":states[:1],
-            "history_coverage":coverage_info,"window_sessions":30,"window_start":first,"collection_on_read":False}
+            "history_coverage":coverage_info,"window_sessions":len(window),"window_weeks":weeks,"window_start":first,"collection_on_read":False}
 
 
 @app.get("/v1/cn/rankings",dependencies=[Depends(authorize)])
@@ -294,8 +300,9 @@ def board_members(request:Request,instrument_id:str,observed_date:date,limit:int
         data=records("members:"+instrument_id,observed_date.isoformat(),None,100000,0,con)
         available={r[0] for r in con.execute("SELECT DISTINCT instrument_id FROM bars WHERE trade_date>=? AND adjustment='none'",(observed_date.isoformat(),))}
         # A prior closed daily bar remains viewable before today's close.
-        from .history import window_start
-        first=window_start('CN',latest_ready('CN',config()),config()).isoformat()
+        from .history import window_start,week_sessions
+        cfg=config()
+        first=week_sessions('CN',latest_ready('CN',cfg),52,cfg)[0] if cfg.get('stock_history_weeks')==52 else window_start('CN',latest_ready('CN',cfg),cfg).isoformat()
         available|={r[0] for r in con.execute("SELECT DISTINCT instrument_id FROM bars WHERE trade_date>=? AND adjustment='none'",(first,))}
         data['items']=[dict(r,has_history='CN.stock.'+r['symbol'] in available) for r in data['items']]
         from .normalize import members
@@ -334,15 +341,20 @@ def stock_flows(instrument_id:str,end:date|None=None,limit:int=Query(30,ge=1,le=
 
 
 @app.get("/v1/history-coverage/{instrument_id}",dependencies=[Depends(authorize)])
-def instrument_history_coverage(instrument_id:str,end:date|None=None,limit:int=Query(30,ge=1,le=2000)):
+def instrument_history_coverage(instrument_id:str,end:date|None=None,limit:int|None=Query(None,ge=1,le=2000),weeks:int|None=Query(None,ge=52,le=52)):
     with db.connect() as con:
-        item=con.execute("SELECT market FROM instruments WHERE id=?",(instrument_id,)).fetchone()
+        item=con.execute("SELECT market,kind FROM instruments WHERE id=?",(instrument_id,)).fetchone()
     if not item:
         raise HTTPException(404,"unknown instrument")
-    from .history import audit
+    from .history import audit,week_sessions
+    cfg=config()
+    if weeks and (item['market']!='CN' or item['kind']!='stock' or cfg.get('stock_history_weeks')!=52):
+        raise HTTPException(422,'52-week history is enabled only for A-share stocks')
     day=min(chosen_day(item["market"],end),chosen_day(item["market"],None))
     try:
-        return audit(instrument_id,day,config(),min(limit,30))
+        maximum=len(week_sessions(item['market'],date.fromisoformat(day),weeks,cfg)) if weeks else 30
+        result=audit(instrument_id,day,cfg,min(limit if limit is not None else maximum,maximum))
+        return dict(result,window_weeks=weeks)
     except ValueError:
         raise HTTPException(422,"date is outside the supported calendar range") from None
 
@@ -369,11 +381,12 @@ def economic_calendar(trade_date:date|None=None,start:date|None=None,end:date|No
 def capabilities():
     from importlib.metadata import version
     from .availability import report as availability_report
-    return {"provider":"mixed_public_sources","version":"0.6.0","akshare_version":version("akshare"),
+    return {"provider":"mixed_public_sources","version":"0.6.1","akshare_version":version("akshare"),
             "stock_funds":{"implemented":True,"source":"stock_individual_fund_flow",
                            "transport":config().get("funds_transport","curl_cffi"),
                            "historical_limit":"provider recent window (documented ~100; 120 observed); stored history accumulates"},
             "history_window_sessions":30,
+            "stock_history_weeks":config().get('stock_history_weeks',0),
             "board_funds":{"implemented":True,"classification_source":"eastmoney","endpoint":"/v1/cn/boards/{board_id}/flows"},
             "gainers":{"implemented":True,"period":"5d","stock_etf_basis":"qfq","endpoint":"/v1/cn/rankings?period=5d"},
             "events":{"news":True,"scheduled_calendar":True,"scheduled_coverage":"official FOMC meetings; date precision only",

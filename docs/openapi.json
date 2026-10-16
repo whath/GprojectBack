@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Personal EOD Market API",
-    "description": "个人近 30 个交易日收盘数据：5 日涨幅、东方财富板块资金、龙虎榜、美股观察、日度宏观、经济日历与官方政策。自动采集默认关闭。",
-    "version": "0.6.0"
+    "description": "个人收盘数据：A股支持近52周日线，兼容30日请求；5日涨幅、板块资金、龙虎榜、美股观察、日度宏观、日历与政策。自动采集默认关闭。",
+    "version": "0.6.1"
   },
   "paths": {
     "/healthz": {
@@ -643,11 +643,35 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "integer",
-              "maximum": 2000,
-              "minimum": 1,
-              "default": 30,
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2000,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Limit"
+            }
+          },
+          {
+            "name": "weeks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 52,
+                  "minimum": 52
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Weeks"
             }
           }
         ],
@@ -1326,11 +1350,35 @@
             "in": "query",
             "required": false,
             "schema": {
-              "type": "integer",
-              "maximum": 2000,
-              "minimum": 1,
-              "default": 30,
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 2000,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "title": "Limit"
+            }
+          },
+          {
+            "name": "weeks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 52,
+                  "minimum": 52
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Weeks"
             }
           }
         ],

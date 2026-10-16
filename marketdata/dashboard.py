@@ -16,7 +16,7 @@ def report(cfg):
         feeds=[r[0] for r in con.execute("SELECT feed_key FROM feed_snapshots WHERE status='complete'")]
         supplemental=[r[0] for r in con.execute('SELECT feed_key FROM supplemental_feeds')]
         count=con.execute("SELECT count(DISTINCT i.id) FROM instruments i JOIN bars b ON b.instrument_id=i.id WHERE i.market='CN' AND i.kind='stock'").fetchone()[0]
-    return dict(api_version='0.6.0',history_sessions=30,generated_at=db.now_iso(),
+    return dict(api_version='0.6.1',history_sessions=30,stock_history_weeks=cfg.get('stock_history_weeks',0),generated_at=db.now_iso(),
                 calendar_targets=targets,latest_dates=dict(cn=dates.get('CN'),us=dates.get('US'),boards=board_date,
                     lhb=lhb_date,membership_observed=member_date),
                 cn_stocks_with_history=count,

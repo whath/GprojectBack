@@ -72,7 +72,15 @@ def ranking(target, cfg, kind='stock', classification='eastmoney', connection=No
         if board:
             for r in con.execute("SELECT b.* FROM bars b JOIN instruments i ON i.id=b.instrument_id WHERE i.market='CN' AND i.kind=? AND i.symbol LIKE ? AND b.trade_date>=? AND b.trade_date<=? AND b.adjustment='none'",(kind,'BK%' if classification=='eastmoney' else 'THS_%',expected_days[0],str(target))):
                 bars.setdefault(r['instrument_id'],[]).append(dict(r))
-        feeds={} if board else {r['feed_key']:json.loads(r['payload']) for r in con.execute("SELECT feed_key,payload FROM feed_snapshots WHERE feed_key LIKE ? AND status='complete'",('adjusted:CN.'+kind+'.%',))}
+        # Decode one source snapshot at a time and retain only six sessions.
+        # A year's data for every stock must never accumulate in API memory.
+        feeds={}
+        if not board:
+            required=set(expected_days)
+            for r in con.execute("SELECT feed_key,payload FROM feed_snapshots WHERE feed_key LIKE ? AND status='complete'",('adjusted:CN.'+kind+'.%',)):
+                feed=json.loads(r['payload'])
+                feed['items']=[p for p in feed.get('items',[]) if p['trade_date'] in required]
+                feeds[r['feed_key']]=feed
         market_closes={r['instrument_id']:dict(r) for r in con.execute("SELECT b.instrument_id,b.close,b.source FROM bars b JOIN instruments i ON i.id=b.instrument_id WHERE i.market='CN' AND i.kind=? AND b.trade_date=? AND b.adjustment='none'",(kind,str(target)))}
         suspensions={}
         if not board:

@@ -1,6 +1,7 @@
 {
   "same_source_close_supplements": true,
   "history_sessions": 30,
+  "stock_history_weeks": 52,
   "automatic_collection": false,
   "automatic_backfill": false,
   "cn_stock_funds_enabled": true,

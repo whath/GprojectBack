@@ -2,8 +2,8 @@
   "schema_version": 1,
   "dated_on": "2026-10-16",
   "status": "implemented_and_deployed; real_source_database_https_verified",
-  "current_runtime_version": "0.6.0",
-  "target_contract_version": "0.6.0",
+  "current_runtime_version": "0.6.1",
+  "target_contract_version": "0.6.1",
   "production_changed_in_this_revision": true,
   "constraints": {
     "personal_use": true,
@@ -82,6 +82,19 @@
       "original_documents_separate_from_interpretations_and_news": true,
       "unknown_times_and_effective_dates": null,
       "do_not_infer_policy_beneficiaries": true
+    },
+    "stock_daily_history": {
+      "market": "CN",
+      "kind": "stock",
+      "calendar_weeks": 52,
+      "target": "2026-10-15",
+      "sessions": 241,
+      "stock_rows": 1320797,
+      "catalog": 5577,
+      "unexplained_stock_days": 0,
+      "details": "docs/HISTORY-52W-ACCEPTANCE-20261016.md",
+      "legacy_default_sessions": 30,
+      "other_datasets_keep_existing_windows": true
     }
   },
   "source_proposals": {

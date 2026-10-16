@@ -22,15 +22,16 @@ def day_string(value):
 
 
 def bars(rows, target, kind, market):
+    from .calendars import session_close
+    from .settings import config
+    cfg = config()
     result = []
     seen = set()
     for row in rows:
         day = day_string(row["日期"])
         if day > target:
             continue
-        from .calendars import session_close
-        from .settings import config
-        if session_close(market, date.fromisoformat(day), config()) is None:
+        if session_close(market, date.fromisoformat(day), cfg) is None:
             raise ValueError("daily bar is not a market session")
         prices = {k: number(row[col]) for k, col in
                   (("open", "开盘"), ("high", "最高"), ("low", "最低"), ("close", "收盘"))}

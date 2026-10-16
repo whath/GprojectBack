@@ -22,6 +22,22 @@ def window_start(market, end, cfg, count=None):
     return date.fromisoformat(sessions(market, end, count or cfg.get('history_sessions', 30), cfg)[0])
 
 
+def week_sessions(market, end, weeks, cfg):
+    """A calendar-week interval, not weeks times five assumed trading days."""
+    if weeks != 52:
+        raise ValueError('only the bounded 52-week price window is supported')
+    first = end - timedelta(weeks=weeks) + timedelta(days=1)
+    days = []
+    cursor = first
+    while cursor <= end:
+        if session_close(market, cursor, cfg) is not None:
+            days.append(cursor.isoformat())
+        cursor += timedelta(days=1)
+    if not days:
+        raise ValueError('calendar cannot supply the requested week window')
+    return days
+
+
 def audit(identifier, end, cfg, count=None):
     count = count or cfg.get('history_sessions', 30)
     expected = sessions(identifier.split(".")[0], date.fromisoformat(end), count, cfg)
