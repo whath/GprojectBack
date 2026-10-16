@@ -75,7 +75,8 @@ def run(cfg, day, count=30, max_items=100, budget=600, kinds=('stock', 'etf'), s
             elif source == 'eastmoney':
                 endpoint = 'stock_zh_a_hist'
             else:
-                endpoint = 'stock_zh_a_daily' if item['source_code'].startswith('bj') else 'stock_zh_a_hist_tx'
+                from .stock_routes import history_endpoint
+                endpoint = history_endpoint(item, source)
             def action(item=item, endpoint=endpoint):
                 collector.history(item, endpoint)
                 coverage = audit(item['id'], day.isoformat(), cfg, count)

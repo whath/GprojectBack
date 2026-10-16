@@ -12,11 +12,46 @@
   "economic_calendar_days": 3,
   "events_interval_seconds": 3600,
   "event_queries": [
-    {"keyword": "美国", "markets": ["US"], "importance": "normal", "valid_hours": 48},
-    {"keyword": "日本", "markets": ["JP"], "importance": "normal", "valid_hours": 48},
-    {"keyword": "韩国", "markets": ["KR"], "importance": "normal", "valid_hours": 48},
-    {"keyword": "原油", "markets": ["OIL"], "importance": "normal", "valid_hours": 48},
-    {"keyword": "黄金", "markets": ["GOLD"], "importance": "normal", "valid_hours": 48}
+    {
+      "keyword": "美国",
+      "markets": [
+        "US"
+      ],
+      "importance": "normal",
+      "valid_hours": 48
+    },
+    {
+      "keyword": "日本",
+      "markets": [
+        "JP"
+      ],
+      "importance": "normal",
+      "valid_hours": 48
+    },
+    {
+      "keyword": "韩国",
+      "markets": [
+        "KR"
+      ],
+      "importance": "normal",
+      "valid_hours": 48
+    },
+    {
+      "keyword": "原油",
+      "markets": [
+        "OIL"
+      ],
+      "importance": "normal",
+      "valid_hours": 48
+    },
+    {
+      "keyword": "黄金",
+      "markets": [
+        "GOLD"
+      ],
+      "importance": "normal",
+      "valid_hours": 48
+    }
   ],
   "request_timeout_seconds": 75,
   "request_attempts": 2,
@@ -28,7 +63,7 @@
     "etf": "sina",
     "boards": "eastmoney"
   },
-  "cn_all_stocks": false,
+  "cn_all_stocks": true,
   "cn_all_etfs": false,
   "cn_all_boards": false,
   "cn_stocks": [

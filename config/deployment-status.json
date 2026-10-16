@@ -14,7 +14,7 @@
     "dns_a_record": "39.96.22.254",
     "tls_certificate_expires": "2026-12-29",
     "certificate_renewal_dry_run": "passed",
-    "desktop_https": "40_checks_passed",
+    "desktop_https": "33_full_a_checks_passed",
     "mobile_cellular_https": "previous_user_confirmation_2026-10-15; new_APK_not_installed",
     "http_redirect_status": 301,
     "unauthorized_status": 401,
@@ -36,7 +36,8 @@
       "CN": "2026-10-15",
       "US": "2026-10-15",
       "membership_observed": "2026-10-16"
-    }
+    },
+    "cn_all_stocks": true
   },
   "client_integration": {
     "checked_on": "2026-10-16",
@@ -51,15 +52,22 @@
     "android_device_install": "not_performed",
     "mobile_render_dimensions": "390x844",
     "desktop_render_dimensions": "1240x900",
-    "backend_tests": 166,
-    "public_api_checks": 40
+    "backend_tests": 172,
+    "public_api_checks": 33
   },
   "coverage": {
     "date": "2026-10-15",
     "five_session_gainers": {
       "stock": {
-        "eligible": 104,
-        "expected": 5576,
+        "expected": 5577,
+        "eligible": 5554,
+        "excluded": 23,
+        "exclusions": {
+          "suspended_within_return_window": 18,
+          "insufficient_listed_sessions": 4,
+          "not_listed_at_target": 1
+        },
+        "missing_data_count": 0,
         "complete": false
       },
       "etf": {
@@ -79,6 +87,8 @@
       }
     },
     "configured_cn_stocks": 5,
+    "active_cn_stock_scope": "all_current_listed_a_shares",
+    "active_cn_stocks": 5577,
     "configured_cn_etfs": 2,
     "configured_em_boards": {
       "industry": 77,
@@ -98,7 +108,11 @@
     "official_policy_source_observations": 89,
     "current_policy_items": 45,
     "current_membership_rows": 7398,
-    "full_market_complete": false
+    "full_market_complete": false,
+    "all_a_history_accounted": true,
+    "all_a_window_rows": 166593,
+    "all_a_catalog": 5577,
+    "all_a_with_history": 5576
   },
   "acceptance": {
     "raw_to_production": {
@@ -149,7 +163,54 @@
         "sha256": "b4621909868381c8bb304610385884c85cccbf43b40da7759b58440c4c233e81"
       }
     },
-    "details": "docs/REVISION-DELIVERY-20261016.md"
+    "details": "docs/REVISION-DELIVERY-20261016.md",
+    "all_a_expansion": {
+      "status": "accepted",
+      "details": "docs/FULL-A-ACCEPTANCE-20261016.md",
+      "database_backup": {
+        "restore_verified": true,
+        "bytes": 91500544,
+        "sha256": "94a7020530fae9fb04eeca1f683417b94c6d8d0bde378f5d3bee1d020923723c",
+        "rows": {
+          "instruments": 8772,
+          "bars": 203731,
+          "datasets": 16679,
+          "feed_snapshots": 5674,
+          "supplemental_points": 21492
+        },
+        "stock_window_rows": 166593,
+        "stocks_with_window_history": 5576
+      },
+      "raw_comparison": {
+        "status": "passed",
+        "counts": {
+          "raw_rows": 163473,
+          "raw_fields": 1307784,
+          "qfq_closes": 163473,
+          "source_adapter_files": 10944,
+          "sha256_verified": 10944
+        },
+        "basis": "retained AKShare response rows and their recorded SHA-256 compared independently against production OHLC, volume, amount and adjusted closes; original 104 series retain previous acceptance evidence"
+      },
+      "pc_acceptance": {
+        "pc_restore": "passed",
+        "sha256": "94a7020530fae9fb04eeca1f683417b94c6d8d0bde378f5d3bee1d020923723c",
+        "bytes": 91500544,
+        "public_ranking_rows_compared_with_backup": 5554,
+        "checks_per_rank": [
+          "actual raw close",
+          "price publisher",
+          "adjustment publisher",
+          "five exact-session price return"
+        ],
+        "client_tests": {
+          "tests": 87,
+          "failures": 0,
+          "errors": 0,
+          "skipped": 0
+        }
+      }
+    }
   },
   "removed_features": [
     "limit_up_ladder",
@@ -159,7 +220,8 @@
     "ths_board_funds_and_membership"
   ],
   "source_limits": [
-    "gainers rank only qualified collected instruments, not all-market coverage",
+    "stock catalog and 30-session price window accounted for all 5577 current A shares; 5-day ranking excludes verified halts and recent IPOs",
+    "stock funds and valuations, ETF and board coverage remain partial",
     "EM board levels differ from THS classifications",
     "gold is Sina XAU CFD reference; no LBMA or official settlement assertion",
     "policy source lists are not exhaustive archives",

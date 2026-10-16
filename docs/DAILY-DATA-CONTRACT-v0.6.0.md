@@ -25,3 +25,7 @@
 保留有数据的龙虎榜、买卖席位、美股行业/AI 观察、指数、配置股资金和估值接口。分钟、关键词旧新闻、Fed 官方会议等存量接口按已有快照查询，未作为新导航占位。`/v1/cn/limit-up-ladder` 已删除并返回 404；不提供长历史扩容、模型推理和信号扫描业务入口。
 
 读取不发起上游抓取。失败保留最后成功快照并返回更新状态；完全无可用快照时返回 503，未知/移除入口返回 404，日期越界或不合规参数返回 422。自动任务继续关闭，数据不会因访问 API 而刷新。公共数据来源当前可用不等于有长期 SLA。
+
+## 全 A 股覆盖解释（10-16 增量）
+
+5 日榜新增 `missing_data_count`：有证据的 `not_listed_at_target`、`insufficient_listed_sessions`、`suspended_within_return_window` 不计为采集缺口。`complete` 仍表示目录每只股票均能进入榜单；存在正常排除项时可为 false，而 `missing_data_count=0`。覆盖接口分别返回 `available`（实际目标日日线）、`suspended_count`、`not_yet_listed_count`、`accounted` 和 `accounted_pct`，不填造停牌价格。详情见 [全 A 验收](FULL-A-ACCEPTANCE-20261016.md)。

@@ -21,6 +21,23 @@ def test_tencent_pinned_akshare_volume_units(symbol,raw_volume):
     assert clean["amount"]==12000
 
 
+def test_beijing_kline_bypasses_only_broken_auxiliary_metadata(monkeypatch,tmp_path):
+    import importlib
+    import akshare as ak
+    module=importlib.import_module('akshare.stock_feature.stock_hist_tx')
+    def unavailable(symbol):raise KeyError('auxiliary metadata has no Beijing key')
+    monkeypatch.setattr(module,'get_tx_start_year',unavailable)
+    def frame(**kwargs):
+        assert module.get_tx_start_year(kwargs['symbol'])=='20260827'
+        return pd.DataFrame([dict(date='2026-10-15',open=10,high=11,low=9,close=10,volume=100,amount=1000)])
+    monkeypatch.setattr(ak,'stock_zh_a_hist_tx',frame)
+    request,response=tmp_path/'request.json',tmp_path/'response.json'
+    request.write_text(json.dumps({'endpoint':'stock_zh_a_hist_tx','kwargs':dict(symbol='bj920779',start_date='20260827',end_date='20261015',adjust='')}))
+    child(request,response)
+    assert json.loads(response.read_text(encoding='utf-8'))['rows'][0]['收盘']==10
+    assert module.get_tx_start_year is unavailable
+
+
 def test_ths_catalog_has_separate_namespace_and_etf_keeps_exchange():
     frame=adapt_frame("stock_board_industry_name_ths",pd.DataFrame([{"name":"半导体","code":"881121"}]),{})
     assert frame.iloc[0]["板块代码"]=="THS_881121"

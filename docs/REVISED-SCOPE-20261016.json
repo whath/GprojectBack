@@ -192,5 +192,13 @@
     "client_tests_skipped": 0,
     "current_membership_rows": 7398,
     "physical_android_install": "not_performed"
+  },
+  "all_a_expansion": {
+    "status": "accepted",
+    "catalog": 5577,
+    "with_history": 5576,
+    "rank_eligible": 5554,
+    "unexplained_missing_days": 0,
+    "detail": "docs/FULL-A-ACCEPTANCE-20261016.md"
   }
 }

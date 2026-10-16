@@ -249,6 +249,9 @@ class Collector:
                     if prefix == "bj":
                         item_history = "stock_zh_a_daily"
                 item = self.item(kind, symbol, str(row["名称"]), source_code)
+                if kind == 'stock' and history == 'stock_zh_a_hist_tx' and source_code.startswith('bj'):
+                    from .stock_routes import history_endpoint
+                    item_history = history_endpoint(item, sources[kind])
                 self.task(f"bar:{item['id']}", lambda i=item,e=item_history: self.history(i,e))
         for kind in ("industry", "concept"):
             board_source = sources["boards"]

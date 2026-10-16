@@ -142,9 +142,18 @@ def child(request, response):
     import akshare as ak
     args = json.loads(Path(request).read_text(encoding="utf-8"))
     supplementary_evidence={}
+    tx_module,previous_start_helper=None,None
     try:
         if args["endpoint"] not in ALLOWED:
             raise ValueError("endpoint is not allowed")
+        if args['endpoint']=='stock_zh_a_hist_tx' and args.get('kwargs',{}).get('symbol','').startswith('bj'):
+            # The pinned SDK's auxiliary earliest-date lookup does not cover
+            # Beijing codes, although its actual kline endpoint does. Use the
+            # explicit query lower bound; this is not an inferred listing date.
+            import importlib
+            tx_module=importlib.import_module('akshare.stock_feature.stock_hist_tx')
+            previous_start_helper=tx_module.get_tx_start_year
+            tx_module.get_tx_start_year=lambda symbol:args['kwargs']['start_date']
         if args.get("transport") == "curl_cffi":
             import requests
             from curl_cffi import requests as curl_requests
@@ -211,6 +220,7 @@ def child(request, response):
         from .normalize import PendingData
         result = {"pending": str(exc)} if isinstance(exc, PendingData) else {"error": type(exc).__name__}
     finally:
+        if tx_module is not None:tx_module.get_tx_start_year=previous_start_helper
         requests.get=original_get_before
         requests.sessions.Session.__init__=original_init_before
     Path(response).write_text(json.dumps(result, ensure_ascii=False), encoding="utf-8")

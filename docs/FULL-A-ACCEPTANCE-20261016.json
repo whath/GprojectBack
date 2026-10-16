@@ -1,0 +1,224 @@
+{
+  "scope": "all currently listed A-share stocks; latest 30 CN market sessions through 2026-10-15",
+  "catalog_observed_date": "2026-10-16",
+  "status": "accepted",
+  "directory": {
+    "total": 5577,
+    "Shanghai_main": 1702,
+    "STAR": 618,
+    "Shenzhen": 2906,
+    "Beijing": 351,
+    "independent_catalogs": 4
+  },
+  "history": {
+    "target": "2026-10-15",
+    "window": 30,
+    "first": "2026-08-27",
+    "catalog": 5577,
+    "raw_history_complete": 5577,
+    "qfq_history_complete": 5577,
+    "thirty_observed_days": 5505,
+    "short_listing_window": 26,
+    "not_listed_at_target": [
+      {
+        "id": "CN.stock.920196",
+        "name": "N南乳",
+        "listed_date": "2026-10-16"
+      }
+    ],
+    "with_verified_halts": 45,
+    "all_window_halted": [],
+    "with_any_raw": 5576,
+    "suspension_evidence_days": 30,
+    "suspension_rows": 371,
+    "unexplained_instruments": 0,
+    "unexplained_raw_days": 0,
+    "unexplained_qfq_days": 0
+  },
+  "raw_reconciliation": {
+    "status": "passed",
+    "counts": {
+      "raw_rows": 163473,
+      "raw_fields": 1307784,
+      "qfq_closes": 163473,
+      "source_adapter_files": 10944,
+      "sha256_verified": 10944
+    },
+    "basis": "retained AKShare response rows and their recorded SHA-256 compared independently against production OHLC, volume, amount and adjusted closes; original 104 series retain previous acceptance evidence"
+  },
+  "public_https": {
+    "status": "passed",
+    "checks": 33,
+    "catalog": 5577,
+    "stocks_with_history": 5576,
+    "ranked_stocks": 5554,
+    "ranking_pages": 12,
+    "exclusions": {
+      "suspended_within_return_window": 18,
+      "insufficient_listed_sessions": 4,
+      "not_listed_at_target": 1
+    },
+    "missing_data_count": 0,
+    "latest_dates": {
+      "cn": "2026-10-15",
+      "us": "2026-10-15",
+      "boards": "2026-10-15",
+      "lhb": "2026-10-15",
+      "membership_observed": "2026-10-16"
+    },
+    "maximum_request_seconds": 0.844
+  },
+  "database": {
+    "restore_verified": true,
+    "bytes": 91500544,
+    "sha256": "94a7020530fae9fb04eeca1f683417b94c6d8d0bde378f5d3bee1d020923723c",
+    "rows": {
+      "instruments": 8772,
+      "bars": 203731,
+      "datasets": 16679,
+      "feed_snapshots": 5674,
+      "supplemental_points": 21492
+    },
+    "stock_window_rows": 166593,
+    "stocks_with_window_history": 5576
+  },
+  "pc_acceptance": {
+    "pc_restore": "passed",
+    "sha256": "94a7020530fae9fb04eeca1f683417b94c6d8d0bde378f5d3bee1d020923723c",
+    "bytes": 91500544,
+    "public_ranking_rows_compared_with_backup": 5554,
+    "checks_per_rank": [
+      "actual raw close",
+      "price publisher",
+      "adjustment publisher",
+      "five exact-session price return"
+    ],
+    "client_tests": {
+      "tests": 87,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "backend_tests": 172,
+  "client_tests": 87,
+  "client_tests_skipped": 0,
+  "worker": "inactive_disabled",
+  "automatic_inspection": false,
+  "automatic_collection": false,
+  "automatic_backfill": false,
+  "automatic_pc_backup": false,
+  "new_paid_sources": false,
+  "remaining_scope_limits": [
+    "stock funds and valuations remain limited to prior instruments",
+    "ETF/board coverage unchanged",
+    "one-shot acceptance does not certify long-term upstream availability"
+  ],
+  "issuer_exception_documents": [
+    {
+      "symbol": "000016",
+      "name": "*ST康佳A",
+      "start": "2026-08-24",
+      "resume": "2026-08-28",
+      "reason": "筹划重大事项",
+      "documents": [
+        [
+          "2026-55",
+          "2026-08-22",
+          "https://static.cninfo.com.cn/finalpage/2026-08-22/1225490821.PDF"
+        ],
+        [
+          "2026-64",
+          "2026-08-28",
+          "https://static.cninfo.com.cn/finalpage/2026-08-28/1225522074.PDF"
+        ]
+      ],
+      "verified_documents": [
+        {
+          "announcement_number": "2026-55",
+          "published_date": "2026-08-22",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-08-22/1225490821.PDF",
+          "sha256": "a4b8091b69bcc62260560dc4b082d69c35bfe03b69bf40195cde8b271d3ab57d",
+          "bytes": 171666
+        },
+        {
+          "announcement_number": "2026-64",
+          "published_date": "2026-08-28",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-08-28/1225522074.PDF",
+          "sha256": "620f215eac79fa104cebffcb425edbbf8c35ae4ebff9f724f444ceb598826e4b",
+          "bytes": 175800
+        }
+      ]
+    },
+    {
+      "symbol": "301139",
+      "name": "元道退",
+      "start": "2026-08-31",
+      "resume": "2026-09-30",
+      "reason": "终止上市决定前停牌，随后复牌进入退市整理期",
+      "documents": [
+        [
+          "2026-088",
+          "2026-08-29",
+          "https://static.cninfo.com.cn/finalpage/2026-08-29/1225533920.PDF"
+        ],
+        [
+          "2026-100",
+          "2026-09-30",
+          "https://static.cninfo.com.cn/finalpage/2026-09-30/1225587751.PDF"
+        ]
+      ],
+      "verified_documents": [
+        {
+          "announcement_number": "2026-088",
+          "published_date": "2026-08-29",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-08-29/1225533920.PDF",
+          "sha256": "f789177f381dc341570fe8e5756bbea804d00fe7e2aa3e569fb0d1bc93aee18f",
+          "bytes": 131121
+        },
+        {
+          "announcement_number": "2026-100",
+          "published_date": "2026-09-30",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-30/1225587751.PDF",
+          "sha256": "59c169bb774b5a23d490324b467d578b2fe97fe0c44ca069dc829a137111240d",
+          "bytes": 86699
+        }
+      ]
+    },
+    {
+      "symbol": "600825",
+      "name": "新华传媒",
+      "start": "2026-09-07",
+      "resume": "2026-09-21",
+      "reason": "筹划发行股份购买资产事项停牌，随后披露预案复牌",
+      "documents": [
+        [
+          "2026-014",
+          "2026-09-08",
+          "https://static.cninfo.com.cn/finalpage/2026-09-08/1225552231.PDF"
+        ],
+        [
+          "2026-018",
+          "2026-09-19",
+          "https://static.cninfo.com.cn/finalpage/2026-09-19/1225571469.PDF"
+        ]
+      ],
+      "verified_documents": [
+        {
+          "announcement_number": "2026-014",
+          "published_date": "2026-09-08",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-08/1225552231.PDF",
+          "sha256": "c78991d668b876ef542919f2bbe1265757e667dec9866a18aa3f246f198768fa",
+          "bytes": 125753
+        },
+        {
+          "announcement_number": "2026-018",
+          "published_date": "2026-09-19",
+          "url": "https://static.cninfo.com.cn/finalpage/2026-09-19/1225571469.PDF",
+          "sha256": "9f9745f3b6cad06fdb2d3b7965f7c861eb333e46cdf8fc211322bb1ed699c9ab",
+          "bytes": 115618
+        }
+      ]
+    }
+  ]
+}

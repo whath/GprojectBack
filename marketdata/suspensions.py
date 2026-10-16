@@ -1,5 +1,6 @@
 """Verify full-session suspension; intraday pauses and resumed stocks do not qualify."""
 import json
+import re
 from datetime import datetime,time
 from . import db
 
@@ -15,6 +16,7 @@ def full_session(rows,day):
             resume=datetime.fromisoformat(row["PREDICT_RESUME_DATE"]) if row.get("PREDICT_RESUME_DATE") else None
             if begins>start or (finishes and finishes<end) or (resume and resume<=start):continue
             symbol=str(row["SECURITY_CODE"]).zfill(6)
+            if not re.fullmatch(r'\d{6}',symbol):raise ValueError('invalid suspension symbol')
             result.append({"key":symbol,"symbol":symbol,"name":row["SECURITY_NAME_ABBR"],
                            "trade_date":day,"status":"reported_full_session_suspension",
                            "source":"eastmoney/suspension_report","reason":row["SUSPEND_REASON"],
@@ -22,6 +24,38 @@ def full_session(rows,day):
         except (KeyError,TypeError,ValueError):
             raise ValueError("invalid suspension report") from None
     return result
+
+
+def precise(source, day):
+    """Keep publisher timestamps; SDK date-only columns lose boundary evidence."""
+    from datetime import date
+    date.fromisoformat(day)
+    rows=[];total=None;pages=None
+    for page in range(1,21):
+        payload=source.json('https://datacenter-web.eastmoney.com/api/data/v1/get',dict(
+            sortColumns='SUSPEND_START_DATE',sortTypes='-1',pageSize=500,pageNumber=page,
+            reportName='RPT_CUSTOM_SUSPEND_DATA_INTERFACE',columns='ALL',source='WEB',client='WEB',
+            filter=f'(MARKET="全部")(DATETIME=\'{day}\')'))
+        body=payload.get('result')
+        if payload.get('success') is not True or not isinstance(body,dict):raise ValueError('suspension envelope mismatch')
+        count,page_count=body.get('count'),body.get('pages')
+        if isinstance(count,bool) or not isinstance(count,int) or not 0<=count<=10000:raise ValueError('invalid suspension count')
+        if isinstance(page_count,bool) or not isinstance(page_count,int) or not 0<=page_count<=20:raise ValueError('invalid suspension pages')
+        if total is not None and (total!=count or pages!=page_count):raise ValueError('suspension pages changed')
+        total,pages=count,page_count
+        part=body.get('data')
+        if not isinstance(part,list) or (not part and count):raise ValueError('suspension page ended early')
+        rows.extend(part)
+        if page>=pages:break
+    if len(rows)!=total:raise ValueError('suspension rows differ from source count')
+    # The service can return intervals starting after the requested day. Exact
+    # start/end/resume times, rather than the request filter, prove coverage.
+    normalized=full_session(rows,day)
+    unique={}
+    for row in normalized:
+        if row['symbol'] not in unique:unique[row['symbol']]=row
+        else:unique[row['symbol']].setdefault('additional_intervals',[]).append({'start':row['start'],'end':row['end']})
+    return list(unique.values())
 
 
 def fetch(day):

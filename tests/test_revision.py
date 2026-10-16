@@ -190,3 +190,53 @@ def test_corrupt_context_json_is_not_served_as_valid_data():
                     ('{"source":"test","collected_at":"2026-01-01T00:00:00+00:00","items":[NaN]}',db.now_iso()))
     with pytest.raises(HTTPException) as result:load('corrupt')
     assert result.value.status_code==503
+
+
+def test_board_rankings_do_not_load_unrelated_stock_snapshots():
+    item=Collector('CN',DAY).item('industry','BK1001','行业样本',group='eastmoney')
+    db.instrument(item)
+    days=sessions('CN',DAY,6,config())
+    rows=normalize.bars([{'日期':d,'开盘':10,'最高':11,'最低':9,'收盘':10,'成交量':100} for d in days],str(DAY),'industry','CN')
+    db.put_bars(item['id'],rows)
+    with db.connect() as con:
+        con.execute("INSERT INTO feed_snapshots VALUES('adjusted:CN.stock.000001','broken',?,'complete',NULL)",(db.now_iso(),))
+    assert ranking(DAY,config(),'industry')['eligible_count']==1
+
+
+def test_beijing_updates_preserve_already_verified_publisher():
+    from marketdata.stock_routes import history_endpoint
+    item=Collector('CN',DAY).item('stock','920779','北交所样本','bj920779')
+    db.instrument(item)
+    assert history_endpoint(item)=='stock_zh_a_daily'
+    rows=normalize.bars([{'日期':str(DAY),'开盘':10,'最高':11,'最低':9,'收盘':10,'成交量':100,'volume_unit':'share'}],str(DAY),'stock','CN')
+    rows[0]['source']='akshare/tencent';db.put_bars(item['id'],rows)
+    assert history_endpoint(item)=='stock_zh_a_hist_tx'
+    assert history_endpoint(item,'eastmoney')=='stock_zh_a_hist'
+
+
+def test_new_listing_and_each_suspended_missing_day_are_explained_separately():
+    item=seed();days=sessions('CN',DAY,6,config())
+    store('adjusted:'+item['id'],dict(instrument_id=item['id'],source='test/qfq',adjustment='qfq',
+          items=[dict(trade_date=d,close=10) for d in days[2:]]))
+    db.put_dataset('suspensions','CN',days[0],[dict(key=item['symbol'],symbol=item['symbol'])])
+    result=ranking(DAY,config())
+    assert result['missing_data_count']==1 and result['exclusions']=={'missing_market_sessions':1}
+    db.put_dataset('suspensions','CN',days[1],[dict(key=item['symbol'],symbol=item['symbol'])])
+    result=ranking(DAY,config())
+    assert result['missing_data_count']==0 and result['exclusions']=={'suspended_within_return_window':1}
+    with db.connect() as con:
+        con.execute("INSERT INTO instrument_lifecycle VALUES(?,'listed',?,NULL,?,'test/exchange')",(item['id'],days[2],str(DAY)))
+    result=ranking(DAY,config())
+    assert result['exclusions']=={'insufficient_listed_sessions':1}
+
+
+def test_coverage_accounts_for_proven_halt_without_inventing_a_bar():
+    from marketdata.health import coverage
+    item=seed();cfg=dict(config(),cn_stocks=[item['symbol']],cn_etfs=[],cn_all_stocks=False,cn_all_etfs=False,cn_all_boards=False,cn_boards={'industry':[],'concept':[]})
+    with db.connect() as con:
+        con.execute("DELETE FROM bars WHERE instrument_id=? AND trade_date=?",(item['id'],str(DAY)))
+    result=coverage('CN',str(DAY),cfg)['categories']['stock']
+    assert not result['complete'] and result['missing_count']==1
+    db.put_dataset('suspensions','CN',str(DAY),[dict(key=item['symbol'],symbol=item['symbol'])])
+    result=coverage('CN',str(DAY),cfg)['categories']['stock']
+    assert result['complete'] and result['available']==0 and result['accounted']==1 and result['suspended_count']==1

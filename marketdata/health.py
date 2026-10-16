@@ -52,6 +52,8 @@ def coverage(market,day,cfg,scope="configured"):
     with db.connect() as con:
         snapshots={r["kind"]:dict(r) for r in con.execute("SELECT * FROM universe_snapshots WHERE market=? AND trade_date=? AND scope=?",(market,day,scope))}
         available={r[0] for r in con.execute("SELECT instrument_id FROM bars WHERE trade_date=? AND instrument_id LIKE ?",(day,market+".%"))}
+        suspended={market+'.stock.'+r[0] for r in con.execute("SELECT DISTINCT symbol FROM datasets WHERE dataset='suspensions' AND market=? AND trade_date=?",(market,day))}
+        not_yet_listed={r[0] for r in con.execute("SELECT instrument_id FROM instrument_lifecycle WHERE listed_date>?",(day,))}
         instruments=[dict(r) for r in con.execute("SELECT * FROM instruments WHERE market=?",(market,))]
     expected={}
     if market=="US":
@@ -74,8 +76,11 @@ def coverage(market,day,cfg,scope="configured"):
         if ids is None:
             categories[kind]={"expected":None,"available":None,"complete":False,"reason":"catalog_not_verified"}
         else:
-            ids=set(ids); missing=sorted(ids-available)
+            ids=set(ids); explained=(suspended|not_yet_listed)-available;missing=sorted(ids-available-explained)
             categories[kind]={"expected":len(ids),"available":len(ids&available),"complete":not missing,
+                "accounted":len(ids&(available|explained)),"suspended_count":len(ids&(suspended-available)),
+                "not_yet_listed_count":len(ids&(not_yet_listed-available)),
+                "accounted_pct":round(100*len(ids&(available|explained))/len(ids),2) if ids else None,
                 "missing_count":len(missing),"missing_ids":missing[:50],"coverage_pct":round(100*len(ids&available)/len(ids),2) if ids else None,
                 "catalog_count":snapshots.get(kind,{}).get("catalog_count")}
     tasks=report_tasks(market,day,scope)
