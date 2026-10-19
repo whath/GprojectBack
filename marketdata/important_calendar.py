@@ -252,6 +252,7 @@ def collect(source, cfg, *, today=None):
 
 
 def report(start, end, country=None, category=None, limit=500):
+    from .settings import config
     if start > end or (end - start).days > 180:
         raise HTTPException(422, 'important calendar range must be ordered and within 180 days')
     rows, states = [], []
@@ -285,6 +286,6 @@ def report(start, end, country=None, category=None, limit=500):
     filtered = [r for r in rows if (not country or r['country_code'] == country) and (not category or r['category'] == category)]
     filtered.sort(key=lambda r: (r.get('local_date') or r['start_date'], r.get('occurs_at') or '', r['id']))
     return dict(items=filtered[:limit], total=len(filtered), truncated=len(filtered) > limit, requested_start=str(start), requested_end=str(end),
-                sources=states, exhaustive=False, automatic_collection_enabled=False,
+                sources=states, exhaustive=False, automatic_collection_enabled=bool(config().get('automatic_collection') and config().get('automatic_refresh_enabled')),
                 pending_meetings=[dict(country_code='CN', title='中央经济工作会议 / 后续中央重要会议', status='awaiting_official_announcement', start_date=None)],
                 note='仅已取得来源明确日程；不保证穷尽。日期型会议保留当地日期，不推算时刻；待公布日期不放入日历。')

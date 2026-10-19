@@ -26,6 +26,8 @@ parser.add_argument('--workers',type=int,choices=(1,2),default=2)
 parser.add_argument('--max-items',type=int,default=6000)
 parser.add_argument('--budget',type=int,default=3600)
 parser.add_argument('--symbols')
+parser.add_argument('--automatic',action='store_true')
+parser.add_argument('--max-attempts',type=int,choices=range(1,11))
 args=parser.parse_args()
 if not 60<=args.budget<=7200 or not 1<=args.max_items<=6000:parser.error('finite capture bounds exceeded')
 cfg=config();day=args.date;validate_collection('CN',day,cfg)
@@ -40,6 +42,14 @@ if args.symbols:
 expected=len(items)
 excluded=[item for item in items if item['symbol'] in halted or (item['listed_date'] and item['listed_date']>str(day))]
 candidates=[item for item in items if item['id'] not in captured and item not in excluded]
+previous={}
+if args.max_attempts and (root/'results.jsonl').exists():
+    from marketdata.auto_batches import failed_attempts
+    previous=failed_attempts(root/'results.jsonl')
+exhausted=[item for item in candidates if args.max_attempts and previous.get(item['id'],0)>=args.max_attempts]
+exhausted_ids={item['id'] for item in exhausted}
+candidates=[item for item in candidates if item['id'] not in exhausted_ids]
+candidates.sort(key=lambda item:(previous.get(item['id'],0),item['id']))
 local=threading.local();began=time.monotonic();results=[]
 
 class Source:
@@ -65,7 +75,9 @@ def checkpoint(phase):
     for result in results:counts[result['status']]=counts.get(result['status'],0)+1
     output=dict(phase=phase,target=str(day),catalog=expected,previously_captured=len(items)-len(candidates)-len(excluded),
         excluded_not_traded=len(excluded),pending_initial=len(candidates),processed=len(results),statuses=counts,
-        elapsed_seconds=round(time.monotonic()-began,1),automatic_jobs_enabled=False)
+        remaining_candidates=max(0,len(candidates)-args.max_items),retry_exhausted=len(exhausted),
+        complete=phase=='finished' and not exhausted and len(candidates)<=args.max_items and all(row['status']=='complete' for row in results),
+        elapsed_seconds=round(time.monotonic()-began,1),automatic_jobs_enabled=args.automatic)
     path=root/'progress.tmp';path.write_text(json.dumps(output,indent=2));path.replace(root/'progress.json');return output
 
 with CollectorLock():

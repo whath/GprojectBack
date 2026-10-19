@@ -9,7 +9,9 @@ from .calendars import CN, latest_ready
 def report(cfg):
     targets={m:latest_ready(m,cfg).isoformat() for m in ('CN','US')}
     with db.connect() as con:
-        dates=dict(con.execute("SELECT i.market,max(b.trade_date) FROM bars b JOIN instruments i ON i.id=b.instrument_id WHERE b.adjustment='none' GROUP BY i.market"))
+        # Independent queues can update a board or ETF before stocks. Its date
+        # must not move the A-share stock ranking to an uncollected session.
+        dates=dict(con.execute("SELECT i.market,max(b.trade_date) FROM bars b JOIN instruments i ON i.id=b.instrument_id WHERE b.adjustment='none' AND (i.market!='CN' OR i.kind='stock') GROUP BY i.market"))
         board_date=con.execute("SELECT max(b.trade_date) FROM bars b JOIN instruments i ON i.id=b.instrument_id WHERE i.market='CN' AND i.kind IN ('industry','concept') AND i.symbol LIKE 'BK%'").fetchone()[0]
         lhb_date=con.execute("SELECT max(trade_date) FROM datasets WHERE dataset='lhb'").fetchone()[0]
         member_date=con.execute("SELECT max(trade_date) FROM datasets WHERE dataset LIKE 'members:CN.%BK%'").fetchone()[0]

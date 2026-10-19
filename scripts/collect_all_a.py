@@ -24,10 +24,14 @@ parser.add_argument('--max-items',type=int,default=10000)
 parser.add_argument('--plan-only',action='store_true')
 parser.add_argument('--weeks',type=int,choices=[52],help='52 calendar weeks; omission retains the 30-session mode')
 parser.add_argument('--symbols',help='Optional comma-separated six-digit symbols for a finite canary')
+parser.add_argument('--automatic',action='store_true',help='Run as a checkpointed cloud queue slice')
+parser.add_argument('--max-attempts',type=int,choices=range(1,11))
+parser.add_argument('--attempt-group',choices=['daily','catchup','1510','1710','1910'],default='daily')
 args=parser.parse_args()
 if not 60<=args.budget<=14400 or not 1<=args.max_items<=10000:parser.error('budget must be 60..14400 and max-items 1..10000')
 cfg=config();target=args.date;days=week_sessions('CN',target,args.weeks,cfg) if args.weeks else sessions('CN',target,30,cfg);dayset=set(days)
 scope='all_a_52w_manual' if args.weeks else 'all_a_30_manual'
+if args.automatic:scope=('all_a_52w_auto_' if args.weeks else 'all_a_30_auto_')+args.attempt_group
 validate_collection('CN',target,cfg);started=time.monotonic();max_seconds=args.budget
 from marketdata.lifecycle import report as directory_report
 directory=directory_report()
@@ -99,9 +103,12 @@ if args.symbols:
     if len(items)!=len(requested):parser.error('symbol is absent from the verified current A-share catalog')
     universe_size=len(items)
 candidates=[item for item in items if needs_capture(item)]
+exhausted=[item for item in candidates if args.max_attempts and max(previous.get('bar:'+item['id'],0),previous.get('adjusted:'+item['id'],0))>=args.max_attempts]
+exhausted_ids={item['id'] for item in exhausted}
+candidates=[item for item in candidates if item['id'] not in exhausted_ids]
 candidates.sort(key=lambda item:(max(previous.get('bar:'+item['id'],0),previous.get('adjusted:'+item['id'],0)),item['id']))
 pending_ids={item['id'] for item in candidates}
-already_complete=universe_size-len(candidates)
+already_complete=universe_size-len(candidates)-len(exhausted)
 if args.plan_only:
     print(json.dumps({'target':str(target),'first':days[0],'window_weeks':args.weeks,'window_sessions':len(days),'catalog':universe_size,'already_accounted':already_complete,'pending':len(candidates),'batch_limit':args.max_items}));raise SystemExit(0)
 items=candidates[:args.max_items]
@@ -163,7 +170,8 @@ def checkpoint():
     statuses={}
     for result in results:statuses[result['status']]=statuses.get(result['status'],0)+1
     result={'phase':'collecting','target':str(target),'first':days[0],'window_weeks':args.weeks,'window_sessions':len(days),'expected':universe_size,'batch_size':len(items),'already_accounted':already_complete,'processed':len(results),'statuses':statuses,'http_requests':http_count,
-            'elapsed_seconds':round(time.monotonic()-started,1),'updated_at':db.now_iso(),'workers':args.workers,'automatic_jobs_enabled':False}
+            'elapsed_seconds':round(time.monotonic()-started,1),'updated_at':db.now_iso(),'workers':args.workers,'automatic_jobs_enabled':args.automatic,
+            'remaining_candidates':max(0,len(candidates)-len(items)),'retry_exhausted':len(exhausted)}
     temp=root/'progress.tmp';temp.write_text(json.dumps(result,ensure_ascii=False,indent=2));temp.replace(root/'progress.json')
     return result
 
@@ -176,6 +184,6 @@ with CollectorLock():
             except Exception as exc:result={'id':pending[future],'status':'internal_error','error':type(exc).__name__+': '+str(exc)[:160]}
             results.append(result);log.write(json.dumps(result,ensure_ascii=False)+'\n');log.flush()
             if len(results)%20==0:checkpoint()
-    summary=checkpoint();summary['phase']='finished';summary['complete']=len(candidates)<=args.max_items and all(r['status'] in ['complete','already_complete','not_yet_listed_at_target'] for r in results)
+    summary=checkpoint();summary['phase']='finished';summary['complete']=not exhausted and len(candidates)<=args.max_items and all(r['status'] in ['complete','already_complete','not_yet_listed_at_target'] for r in results)
     final=root/'progress.tmp';final.write_text(json.dumps(summary,ensure_ascii=False,indent=2));final.replace(root/'progress.json');print(json.dumps(summary,ensure_ascii=False))
     raise SystemExit(0 if summary['complete'] else 2)

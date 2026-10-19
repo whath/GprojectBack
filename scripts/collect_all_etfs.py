@@ -27,6 +27,8 @@ parser.add_argument('--output',type=Path,required=True)
 parser.add_argument('--workers',type=int,choices=(1,2),default=2)
 parser.add_argument('--budget',type=int,default=3600)
 parser.add_argument('--max-items',type=int,default=3000)
+parser.add_argument('--automatic',action='store_true')
+parser.add_argument('--max-attempts',type=int,choices=range(1,11))
 args=parser.parse_args()
 if not 60<=args.budget<=7200 or not 1<=args.max_items<=3000:parser.error('capture bound exceeded')
 cfg=config();target=args.date;validate_collection('CN',target,cfg)
@@ -45,6 +47,20 @@ with db.connect() as con:
     for row in con.execute("SELECT feed_key,payload FROM feed_snapshots WHERE feed_key LIKE 'adjusted:CN.etf.%' AND status='complete'"):
         feed=json.loads(row[1]);adjusted[row[0]]={point['trade_date'] for point in feed['items']}
 assert items,'verified ETF listing catalog required'
+catalog_size=len(items)
+previous={}
+log_path=root/'results.jsonl'
+if args.max_attempts and log_path.exists():
+    from marketdata.auto_batches import failed_attempts
+    previous=failed_attempts(log_path)
+def needed(item):
+    expected={day for day in days if not item['listed_date'] or day>=item['listed_date']}
+    return bool(expected-actual.get(item['id'],set()) or expected-adjusted.get('adjusted:'+item['id'],set()))
+pending=[item for item in items if needed(item)]
+exhausted=[item for item in pending if args.max_attempts and previous.get(item['id'],0)>=args.max_attempts]
+exhausted_ids={item['id'] for item in exhausted}
+items=[item for item in pending if item['id'] not in exhausted_ids]
+items.sort(key=lambda item:(previous.get(item['id'],0),item['id']))
 results=[]
 
 class Source:
@@ -98,8 +114,10 @@ def capture(item):
 def checkpoint(phase):
     counts={}
     for row in results:counts[row['status']]=counts.get(row['status'],0)+1
-    output=dict(phase=phase,target=str(target),catalog=len(items),processed=len(results),statuses=counts,
-        elapsed_seconds=round(time.monotonic()-began,1),automatic_jobs_enabled=False)
+    output=dict(phase=phase,target=str(target),catalog=catalog_size,processed=len(results),statuses=counts,
+        remaining_candidates=max(0,len(items)-args.max_items),retry_exhausted=len(exhausted),
+        complete=phase=='finished' and not exhausted and len(items)<=args.max_items and all(row['status'] in ('complete','not_listed_at_target') for row in results),
+        elapsed_seconds=round(time.monotonic()-began,1),automatic_jobs_enabled=args.automatic)
     temp=root/'progress.tmp';temp.write_text(json.dumps(output,indent=2));temp.replace(root/'progress.json')
     return output
 

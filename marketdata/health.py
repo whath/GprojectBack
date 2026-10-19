@@ -43,9 +43,14 @@ def health(now=None):
     if worker_required and (age is None or age>300): issues.append("worker_heartbeat_stale")
     if backup_required and (backup_age is None or backup_age>30*3600): issues.append("backup_stale")
     if free<1024**3: issues.append("disk_space_low")
+    automation=None
+    if cfg.get('automatic_refresh_enabled',False):
+        from .automation import summary
+        automation=summary()
     return {"ready":not issues,"database":"ok","worker":dict(heartbeat) if heartbeat else None,
             "worker_required":worker_required,"worker_mode":"scheduled" if worker_required else "disabled_by_configuration",
-            "heartbeat_age_seconds":age,"backup":backup,"offsite_backup":offsite_status(now),"disk_free_bytes":free,"issues":issues}
+            "heartbeat_age_seconds":age,"backup":backup,"offsite_backup":offsite_status(now),"disk_free_bytes":free,"issues":issues,
+            "automation":automation}
 
 
 def coverage(market,day,cfg,scope="configured"):

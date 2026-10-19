@@ -95,7 +95,6 @@ def main():
         raise SystemExit(0 if result['status']=='complete' else 2)
     elif args.command=="collect-scheduled-events":
         from .scheduled import collect
-        from .pipeline import CollectorLock
         with CollectorLock():
             result=collect(args.year,args.raw_dir)
         print(json.dumps(result,ensure_ascii=False))
@@ -116,14 +115,25 @@ def main():
         from .scheduler import run_once
         from .operations import alert
         with CollectorLock("worker.lock"):
+            if config().get('automatic_refresh_enabled',False):
+                from .automation import recover
+                from datetime import datetime,timezone
+                recover(config(),datetime.now(timezone.utc))
             while True:
                 try:
-                    run_once(config())
+                    cfg=config()
+                    if not cfg.get('automatic_collection',False):
+                        break
+                    if cfg.get('automatic_refresh_enabled',False):
+                        from .automation import run_once as automatic_refresh
+                        automatic_refresh(cfg)
+                    else:
+                        run_once(cfg)
                     alert("worker_exception")
                 except Exception as exc:
                     logging.exception("worker iteration failed; retry in 60 seconds")
                     alert("worker_exception",f"{type(exc).__name__}: {exc}","error")
-                time.sleep(60)
+                time.sleep(5 if config().get('automatic_refresh_enabled',False) else 60)
 
 
 if __name__=="__main__":

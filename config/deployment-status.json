@@ -23,14 +23,14 @@
   },
   "server_changes_performed": true,
   "runtime": {
-    "checked_on": "2026-10-16",
+    "checked_on": "2026-10-19",
     "server_api_version": "0.6.4",
     "local_api_version": "0.6.4",
     "history_sessions": 30,
-    "worker": "inactive_disabled_by_user",
+    "worker": "active_enabled",
     "automatic_monitoring": "paused_by_user",
-    "automatic_collection": false,
-    "automatic_backfill": false,
+    "automatic_collection": true,
+    "automatic_backfill": true,
     "automatic_pc_backup": false,
     "certificate_renewal": "enabled",
     "data_acceptance_dates": {
@@ -41,7 +41,10 @@
     "cn_all_stocks": true,
     "stock_history_weeks": 52,
     "api_last_acceptance": "CALENDAR-STUDIES-ACCEPTANCE-20261016",
-    "connection_rechecked_on": "2026-10-19"
+    "connection_rechecked_on": "2026-10-19",
+    "automatic_refresh_enabled": true,
+    "automatic_backup": false,
+    "automatic_activation_at": "2026-10-19T02:38:37.605622+00:00"
   },
   "client_integration": {
     "checked_on": "2026-10-19",
@@ -723,5 +726,49 @@
     "bytes": 663519232,
     "sha256": "1685729822e2a5a45fd899786697552aef37726ac633f7db1d89b8993ccdec32",
     "automatic_backup_enabled": false
+  },
+  "automatic_refresh_acceptance": {
+    "checked_on": "2026-10-19",
+    "status": "enabled",
+    "backend_tests": {
+      "tests": 224,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "details": "docs/AUTOMATIC-REFRESH-20261019.md",
+    "scope": "all currently displayed modules; existing source limits retained",
+    "cn_slots": [
+      "15:10",
+      "17:10",
+      "19:10"
+    ],
+    "timezone": "Asia/Shanghai",
+    "us_slots": "market close plus 1 and 3 hours; DST-aware",
+    "news_hours": 3,
+    "macro_calendar_hours": 6,
+    "retry_interval_minutes": 20,
+    "retry_max_additional_attempts": 3,
+    "batch_items": 120,
+    "batch_workers": 2,
+    "batch_start_budget_seconds": 90,
+    "job_timeout_seconds": 180,
+    "startup": "systemd enabled; restart on failure",
+    "source_scenarios": 18,
+    "bulk_resume": "stocks/ETFs/intraday each two successful four-instrument batches",
+    "data_complete": false,
+    "initial_target": "2026-10-16",
+    "api_version": "0.6.4",
+    "client_version": "0.6.5",
+    "automatic_pc_backup": false,
+    "worker_memory_max_bytes": 1048576000,
+    "worker_cpu_cores": 1,
+    "worker_nice": 10,
+    "worker_oom_kills": 0,
+    "remaining_limits": [
+      "BLS unavailable; explicit limited-window aggregator fallback",
+      "first full pool backfill is in progress; source errors remain visible",
+      "initial production Sina ETF catalog JSON errors and Eastmoney disconnects are queued for bounded retry"
+    ]
   }
 }

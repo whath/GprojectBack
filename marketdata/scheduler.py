@@ -46,10 +46,11 @@ def run_once(cfg,now=None,collector_class=Collector):
         from .health import offsite_status
         state=offsite_status(now)
         alert("offsite_backup_stale","No verified offsite backup within 30 hours; local computer must be online" if state["stale"] or not state["verified"] else None)
-    try:
-        daily_backup(cfg,now)
-    except Exception as exc:
-        alert("backup_failed",f"{type(exc).__name__}: {exc}","error")
+    if cfg.get('automatic_backup',True):
+        try:
+            daily_backup(cfg,now)
+        except Exception as exc:
+            alert("backup_failed",f"{type(exc).__name__}: {exc}","error")
     due=list(due_slots(cfg,now))
     current_slots={s for _,_,s in due}
     backlog_markets=set()
