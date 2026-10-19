@@ -19,7 +19,7 @@
     "http_redirect_status": 301,
     "unauthorized_status": 401,
     "public_docs_status": 404,
-    "mobile_android_https": "0.6.4_real_device_verified"
+    "mobile_android_https": "0.6.5_LGE-AN10_force_stop_reopen_verified_2026-10-19"
   },
   "server_changes_performed": true,
   "runtime": {
@@ -40,37 +40,63 @@
     },
     "cn_all_stocks": true,
     "stock_history_weeks": 52,
-    "api_last_acceptance": "CALENDAR-STUDIES-ACCEPTANCE-20261016"
+    "api_last_acceptance": "CALENDAR-STUDIES-ACCEPTANCE-20261016",
+    "connection_rechecked_on": "2026-10-19"
   },
   "client_integration": {
-    "checked_on": "2026-10-16",
-    "business_version": "0.6.4",
-    "desktop_package_version": "1.6.4",
-    "client_tests": 105,
+    "checked_on": "2026-10-19",
+    "business_version": "0.6.5",
+    "desktop_package_version": "1.6.5",
+    "compatible_api_version": "0.6.4",
+    "client_tests": 113,
     "failures": 0,
+    "errors": 0,
     "skipped": 0,
     "real_https_repository_and_rendering": "passed",
     "android_build": "passed",
     "windows_portable_build": "passed",
-    "android_device_install": "Honor ALI-AN00 Android13 versionCode6 verified",
-    "mobile_render_dimensions": "390x844",
-    "desktop_render_dimensions": "1240x900",
-    "backend_tests": 204,
-    "public_api_checks": 21,
-    "concurrent_api_checks": 9,
-    "real_device_chart": {
+    "credential_scan": "passed",
+    "android_device_install": "Honor LGE-AN10 Android15 versionCode7 verified",
+    "android_device_upgrade_preserves_data": true,
+    "trusted_device_authorization": {
       "status": "passed",
-      "version": "0.6.4",
-      "versionCode": 6,
+      "version": "0.6.5",
+      "model": "HONOR LGE-AN10",
+      "android": "15",
+      "restarts": [
+        {
+          "process_changed": true,
+          "automatic_connection": true,
+          "manual_token_input": false
+        },
+        {
+          "process_changed": true,
+          "automatic_connection": true,
+          "manual_token_input": false
+        }
+      ],
+      "encrypted_file": true,
+      "plaintext_token_absent": true,
+      "iv_bytes": 12,
+      "ciphertext_bytes": 123,
+      "settings_without_token_field": true
+    },
+    "real_device_features": {
+      "status": "passed",
+      "version": "0.6.5",
+      "model": "HONOR LGE-AN10",
+      "android": "15",
+      "backend_connected": true,
+      "calendar": true,
       "stock": "CN.stock.000001",
       "daily_bars": 241,
-      "zoomed_bars": 172,
       "minute_points": 242,
-      "selected_date_sync": "2026-06-01",
-      "watch_price_matches_api": true,
-      "watch_preferences_restored": true
+      "price_axis": true,
+      "price": 11.41,
+      "app_running": true
     },
-    "calendar_watch_studies": "important meetings/releases, high-importance economics, independent watch price, axis/volume/MA/MACD/KDJ/RSI/BOLL verified"
+    "desktop_authorization": "session_only",
+    "details": "docs/TRUSTED-DEVICE-ACCEPTANCE-20261019.md"
   },
   "coverage": {
     "date": "2026-10-15",
@@ -351,6 +377,19 @@
       },
       "automatic_jobs": false,
       "scope": "current A-share pool raw daily prices; other datasets retain existing windows"
+    },
+    "artifacts_065": {
+      "credential_scan": "passed",
+      "artifacts": {
+        "Gproject-Android-v0.6.5.apk": {
+          "bytes": 19042254,
+          "sha256": "7c64806fd8f89c30bac67760ecd199126747f56a8e4a60001bb718905d9d5030"
+        },
+        "Gproject-Windows-v0.6.5.zip": {
+          "bytes": 96877393,
+          "sha256": "ecb7871433ceabdeafcfaa394cdb7a25f911d496850ad88d611e4b3447be0e72"
+        }
+      }
     }
   },
   "removed_features": [
@@ -647,6 +686,36 @@
           "scope": "current A-share pool raw daily prices; other datasets retain existing windows"
         }
       }
+    },
+    "0.6.4_client_2026-10-16": {
+      "checked_on": "2026-10-16",
+      "business_version": "0.6.4",
+      "desktop_package_version": "1.6.4",
+      "client_tests": 105,
+      "failures": 0,
+      "skipped": 0,
+      "real_https_repository_and_rendering": "passed",
+      "android_build": "passed",
+      "windows_portable_build": "passed",
+      "android_device_install": "Honor ALI-AN00 Android13 versionCode6 verified",
+      "mobile_render_dimensions": "390x844",
+      "desktop_render_dimensions": "1240x900",
+      "backend_tests": 204,
+      "public_api_checks": 21,
+      "concurrent_api_checks": 9,
+      "real_device_chart": {
+        "status": "passed",
+        "version": "0.6.4",
+        "versionCode": 6,
+        "stock": "CN.stock.000001",
+        "daily_bars": 241,
+        "zoomed_bars": 172,
+        "minute_points": 242,
+        "selected_date_sync": "2026-06-01",
+        "watch_price_matches_api": true,
+        "watch_preferences_restored": true
+      },
+      "calendar_watch_studies": "important meetings/releases, high-importance economics, independent watch price, axis/volume/MA/MACD/KDJ/RSI/BOLL verified"
     }
   },
   "manual_backup_064": {

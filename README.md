@@ -2,9 +2,11 @@
 
 提供全 A 股近 **52 周日线**及兼容的近 **30 个本地市场交易日**查询，服务于个人手机和 Windows 客户端。正式 HTTPS：`https://ericcself.top`；数据接口使用 Bearer Token，`/healthz` 仅表示存活，`/readyz` 表示服务就绪。
 
+2026-10-19：客户端 0.6.5 已在常用荣耀 LGE-AN10 完成加密保存授权与两次重开自动连接验证，113 项客户端测试通过。后端接口保持 0.6.4，公网数据接口继续鉴权。详见 [本机授权接入验收](docs/TRUSTED-DEVICE-ACCEPTANCE-20261019.md)。
+
 2026-10-16 已上线中美重要会议与数据公布日程、经济日历高重要性过滤、独立自选收盘报价；客户端增加价格轴、成交量及 MA/MACD/KDJ/RSI/BOLL 和所选日形态解释。后端204项回归、客户端105项测试（含正式HTTPS、手机/桌面渲染）通过；公网21项及9次并发请求通过，荣耀ALI-AN00真机已验收。当前新增契约见 [v0.6.4](docs/CALENDAR-STUDIES-v0.6.4.md)，验收和来源边界见 [交付记录](docs/CALENDAR-STUDIES-ACCEPTANCE-20261016.md)；原榜单/22方向/资讯/分时见 [v0.6.3](docs/SEVEN-DAY-v0.6.3.md)。客户端：[GprojectApp](https://github.com/whath/GprojectApp)。
 
-**定时采集、自动补采、巡检和电脑自动备份继续关闭。** 本轮仅执行有限手工采集和一次一致性备份。已有历史存档保留，API 不再排队扩大历史范围；证书自动续期保持启用。
+**定时采集、自动补采、巡检和电脑自动备份继续关闭。** 0.6.4 验收时执行过有限手工采集和一次一致性备份；本次仅验证连接。已有历史存档保留，API 不再排队扩大历史范围；证书自动续期保持启用。
 
 ## 当前业务范围
 
@@ -31,7 +33,7 @@ $env:API_TOKEN = & ./.venv/Scripts/python.exe -c 'import secrets; print(secrets.
 ./.venv/Scripts/python.exe -m uvicorn marketdata.api:app --host 127.0.0.1 --port 8000 --workers 1
 ```
 
-令牌至少 32 字符，保存在环境或受保护配置中，客户端需输入相同令牌。本地 `/docs` 和 `/openapi.json` 可访问；生产公网这两个路径返回 404，契约见仓库 [OpenAPI](docs/openapi.json)。API 仅查已落库数据，不在请求中采集。
+令牌至少 32 字符，保存在环境或受保护配置中，客户端首次连接需使用相同令牌；Android 授权后加密保存，重开自动连接。本地 `/docs` 和 `/openapi.json` 可访问；生产公网这两个路径返回 404，契约见仓库 [OpenAPI](docs/openapi.json)。API 仅查已落库数据，不在请求中采集。
 
 ## 有限手工采集
 
