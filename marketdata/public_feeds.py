@@ -14,10 +14,10 @@ class PublicSource:
     def __init__(self, raw_dir=None):
         self.raw_dir = Path(raw_dir) if raw_dir else None
 
-    def get(self, url, params=None, headers=None):
+    def get(self, url, params=None, headers=None, *, encoding=None, timeout=(8, 25)):
         with requests.Session() as session:
             session.trust_env = False
-            with session.get(url, params=params, timeout=(8, 25), stream=True,
+            with session.get(url, params=params, timeout=timeout, stream=True,
                              headers={'User-Agent': 'PersonalEOD/0.6',**(headers or {})}) as response:
                 response.raise_for_status()
                 chunks, size = [], 0
@@ -27,7 +27,7 @@ class PublicSource:
                         raise ValueError('source response exceeds bounded size')
                     chunks.append(chunk)
                 raw = b''.join(chunks)
-                encoding = response.encoding or 'utf-8'
+                encoding = encoding or response.encoding or 'utf-8'
                 if encoding.lower() == 'iso-8859-1':
                     encoding = 'utf-8'
                 text = raw.decode(encoding)

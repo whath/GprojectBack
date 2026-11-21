@@ -25,6 +25,7 @@ def main():
                          help="use configured validated close adapters; --no-same-source-close is for source diagnostics")
     collect.add_argument("--raw-dir",type=Path)
     commands.add_parser("worker")
+    commands.add_parser("collect-looklook-quotes")
     funds=commands.add_parser("collect-funds")
     funds.add_argument("--date",type=date.fromisoformat)
     funds.add_argument("--symbol",action="append")
@@ -109,12 +110,18 @@ def main():
     elif args.command=="rebuild-us-source":
         from .rebuild import rebuild_us_sina
         print(json.dumps(rebuild_us_sina(args.instrument_id,args.date),ensure_ascii=False))
+    elif args.command=="collect-looklook-quotes":
+        from .looklook import refresh
+        result = refresh(config())
+        print(json.dumps(result,ensure_ascii=False))
+        raise SystemExit(2 if result['status'] == 'failed' else 0)
     elif args.command=="worker":
         if not config().get('automatic_collection',False):
             raise SystemExit('Automatic collection is disabled by configuration; use explicit manual commands')
         from .scheduler import run_once
         from .operations import alert
-        with CollectorLock("worker.lock"):
+        from .looklook import worker_clock
+        with CollectorLock("worker.lock"), worker_clock():
             if config().get('automatic_refresh_enabled',False):
                 from .automation import recover
                 from datetime import datetime,timezone

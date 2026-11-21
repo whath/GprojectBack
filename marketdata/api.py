@@ -527,6 +527,12 @@ def watch_quotes(ids:str=Query(...,min_length=1,max_length=8000),cn_date:date|No
     return report(ids.split(','),config(),cn_date,us_date)
 
 
+@app.get('/v1/looklook/quotes', dependencies=[Depends(authorize)])
+def looklook_quotes():
+    from .looklook import snapshot
+    return snapshot()
+
+
 @app.get("/v1/catalog-coverage",dependencies=[Depends(authorize)])
 def catalog_coverage():
     from .lifecycle import report
