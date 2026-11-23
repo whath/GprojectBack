@@ -2,7 +2,6 @@
 import json
 import logging
 import re
-import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -12,7 +11,7 @@ from threading import Event, Thread
 from fastapi import HTTPException
 
 from . import db, normalize, public_feeds
-from .calendars import CN
+from .calendars import CN, session_close
 from .pipeline import CollectorLock
 from .provider import AKProvider
 from .quotes import parse_tencent
@@ -21,9 +20,14 @@ from .settings import config
 
 log = logging.getLogger(__name__)
 INTERVAL_SECONDS = 15 * 60
+SCHEDULED_MINUTES = (
+    frozenset(range(9 * 60 + 26, 11 * 60 + 30, INTERVAL_SECONDS // 60))
+    | frozenset(range(13 * 60 + 1, 15 * 60, INTERVAL_SECONDS // 60))
+)
 REQUEST_TIMEOUT_SECONDS = 60
 AKSHARE_COOLDOWN_SECONDS = 60 * 60
 FEED_KEY = 'looklook:quotes'
+SCHEDULE_KEY = FEED_KEY + ':schedule'
 AKSHARE_KEY = FEED_KEY + ':akshare'
 TENCENT_KEY = FEED_KEY + ':tencent'
 ENDPOINT = 'stock_zh_a_spot_em'
@@ -168,20 +172,45 @@ def snapshot(*, now=None):
             'source': stored['source'], 'stale': stale, 'partial': len(quotes) < len(selected), 'quotes': quotes}
 
 
+def collect_scheduled_slot(cfg, now):
+    """Claim and run the current Shanghai-time slot, if one is due."""
+    if not cfg.get('automatic_collection', False) or not cfg.get('looklook_quotes_enabled', True):
+        return None
+
+    local = now.astimezone(CN)
+    if local.hour * 60 + local.minute not in SCHEDULED_MINUTES:
+        return None
+    close = session_close('CN', local.date(), cfg)
+    if close is None or local >= close:
+        return None
+
+    # A single durable claim prevents repeat attempts after process restarts.
+    slot = local.replace(second=0, microsecond=0).astimezone(timezone.utc).isoformat()
+    with db.connect() as con:
+        claimed = con.execute('''
+            INSERT INTO feed_attempts (feed_key, last_attempt, attempts, status)
+            VALUES (?, ?, 1, 'claimed')
+            ON CONFLICT(feed_key) DO UPDATE SET
+                last_attempt=excluded.last_attempt, attempts=feed_attempts.attempts+1
+            WHERE feed_attempts.last_attempt < excluded.last_attempt
+        ''', (SCHEDULE_KEY, slot)).rowcount
+    if claimed:
+        return refresh(cfg)
+    return None
+
+
 @contextmanager
 def worker_clock():
     stop = Event()
 
     def poll():
         while not stop.is_set():
-            began = time.monotonic()
             try:
-                cfg = config()
-                if cfg.get('automatic_collection', False) and cfg.get('looklook_quotes_enabled', True):
-                    refresh(cfg)
+                collect_scheduled_slot(config(), datetime.now(CN))
             except Exception as exc:
                 log.warning('looklook collection unavailable: %s', type(exc).__name__)
-            stop.wait(max(0, INTERVAL_SECONDS - (time.monotonic() - began)))
+            now = datetime.now(CN)
+            stop.wait(60 - now.second - now.microsecond / 1_000_000)
 
     thread = Thread(target=poll, name='looklook-quotes', daemon=True)
     thread.start()

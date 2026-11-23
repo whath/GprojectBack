@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 
-from marketdata import db
+from marketdata import db, looklook
 from marketdata.api import app
 from marketdata.looklook import AKSHARE_KEY, ENDPOINT, INTERVAL_SECONDS, SOURCE, TENCENT_SOURCE, refresh, snapshot, symbols
 from marketdata.provider import ProviderError
@@ -112,3 +112,59 @@ def test_tencent_fallback_batches_and_uses_only_newest_real_trade_date():
     assert refresh({}, provider=source, tencent=older)['status'] == 'failed'
     assert source.calls == 1
     assert snapshot() == {**saved, 'stale': True}
+
+
+def test_scheduled_refreshes_follow_shanghai_slots(monkeypatch):
+    calls = []
+    cfg = {'automatic_collection': True}
+
+    def collect(settings):
+        assert settings is cfg
+        calls.append(now)
+        return {'status': 'complete'}
+
+    monkeypatch.setattr(looklook, 'refresh', collect)
+    day = datetime(2026, 11, 23, tzinfo=looklook.CN)
+    for minute in range(24 * 60):
+        now = (day + timedelta(minutes=minute)).astimezone(timezone.utc)
+        looklook.collect_scheduled_slot(cfg, now)
+    assert [timestamp.astimezone(looklook.CN).strftime('%H:%M') for timestamp in calls] == [
+        '09:26', '09:41', '09:56', '10:11', '10:26', '10:41', '10:56', '11:11', '11:26',
+        '13:01', '13:16', '13:31', '13:46', '14:01', '14:16', '14:31', '14:46',
+    ]
+
+
+def test_scheduled_refresh_respects_calendar_and_overrides(monkeypatch):
+    def unexpected_collect(_cfg):
+        raise AssertionError('closed session started a collection')
+
+    monkeypatch.setattr(looklook, 'refresh', unexpected_collect)
+    cfg = {'automatic_collection': True}
+    for value in ('2026-11-22T09:26:00+08:00', '2026-10-01T13:01:00+08:00'):
+        assert looklook.collect_scheduled_slot(cfg, datetime.fromisoformat(value)) is None
+
+    day = '2026-11-23'
+    due = datetime.fromisoformat(f'{day}T13:01:00+08:00')
+    for close in (False, '11:30'):
+        override = {'calendar_overrides': {'CN': {day: close}}}
+        assert looklook.collect_scheduled_slot({**cfg, **override}, due) is None
+    assert looklook.collect_scheduled_slot({**cfg, 'looklook_quotes_enabled': False}, due) is None
+    assert looklook.collect_scheduled_slot({}, due) is None
+
+
+def test_scheduled_refresh_claims_only_current_slot_once(monkeypatch):
+    calls = []
+
+    def collect(cfg):
+        calls.append(cfg)
+        return {'status': 'failed'}
+
+    monkeypatch.setattr(looklook, 'refresh', collect)
+    cfg = {'automatic_collection': True}
+    first = datetime(2026, 11, 23, 9, 26, tzinfo=looklook.CN)
+    assert looklook.collect_scheduled_slot(cfg, first + timedelta(minutes=1)) is None
+    assert looklook.collect_scheduled_slot(cfg, first + timedelta(seconds=59)) == {'status': 'failed'}
+    assert looklook.collect_scheduled_slot(cfg, first + timedelta(seconds=59)) is None
+    assert looklook.collect_scheduled_slot(cfg, first + timedelta(minutes=15)) == {'status': 'failed'}
+    assert looklook.collect_scheduled_slot(cfg, first) is None
+    assert len(calls) == 2
